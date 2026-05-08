@@ -1,39 +1,40 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Download, Plus, RotateCw, Search } from "lucide-react";
+import { Download, Plus, RotateCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { getCategoryColumns } from "@/components/category/category-columns";
 import { CategoryFormDialog } from "@/components/category/category-form-dialog";
-import { CategoryTable } from "@/components/category/category-table";
+import { DataTableWrapper } from "@/components/common/datatable/data-table-wrapper";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useCrudMutation } from "@/hooks/admin/module/use-crud-mutation";
 import { useCategories } from "@/hooks/admin/module/use-categories";
+import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
 import { ADMIN_API_ROUTES } from "@/lib/routes";
 
 export default function CategoryPage() {
   const queryClient = useQueryClient();
-  const [searchDraft, setSearchDraft] = useState("");
-  const [appliedSearch, setAppliedSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
+  const [search, setSearch] = useState("");
+  const [offset, setOffset] = useState(0);
+  const [limit, setLimit] = useState(DEFAULT_PAGE_LIMIT);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const { data, isLoading, isFetching, refetch } = useCategories(
-    page,
-    pageSize,
-    appliedSearch
-  );
+  const page = Math.floor(offset / limit) + 1;
+
+  const { data, isLoading, isFetching, refetch } = useCategories(page, limit, search);
 
   const categories = useMemo(() => data?.data || data?.results || [], [data]);
-  const totalCount = data?.meta?.total || categories.length;
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const totalCount = data?.meta?.total ?? categories.length;
+
+  const getColumns = useMemo(
+    () => getCategoryColumns(actionLoading),
+    [actionLoading]
+  );
 
   const { create } = useCrudMutation({
     baseUrl: ADMIN_API_ROUTES.CREATE_CATEGORIES,
@@ -93,6 +94,13 @@ export default function CategoryPage() {
     }
   };
 
+  const handleSearch = (value) => {
+    setSearch(value);
+    setOffset(0);
+  };
+
+  const tableLoading = isLoading || isFetching;
+
   return (
     <section>
       <PageHeader
@@ -134,44 +142,32 @@ export default function CategoryPage() {
         }
       />
 
-      <div className="mb-4 flex items-center gap-2">
-        <Input
-          value={searchDraft}
-          onChange={(event) => setSearchDraft(event.target.value)}
-          placeholder="Search categories..."
-          className="max-w-sm"
-        />
-        <Button
-          onClick={() => {
-            setAppliedSearch(searchDraft);
-            setPage(1);
-          }}
-        >
-          <Search className="mr-2 size-4" />
-          Search
-        </Button>
-      </div>
-
-      {isLoading || isFetching ? (
-        <div className="space-y-3">
-          <Skeleton className="h-14 w-full rounded-xl" />
-          <Skeleton className="h-14 w-full rounded-xl" />
-          <Skeleton className="h-14 w-full rounded-xl" />
-        </div>
-      ) : categories.length ? (
-        <CategoryTable
-          categories={categories}
-          loading={actionLoading}
-          onEdit={(category) => {
-            setEditing(category);
-            setDialogOpen(true);
-          }}
-          onDelete={onDelete}
-        />
-      ) : (
+      {!tableLoading && categories.length === 0 && !search.trim() ? (
         <EmptyState
           title="No categories yet"
           description="Create your first category to begin organizing items."
+        />
+      ) : (
+        <DataTableWrapper
+          offset={offset}
+          limit={limit}
+          total={totalCount}
+          search={search}
+          data={categories}
+          isLoading={tableLoading}
+          getColumns={getColumns}
+          onSearchAction={handleSearch}
+          onPageChangeAction={(newOffset, newLimit) => {
+            setOffset(newOffset);
+            setLimit(newLimit);
+          }}
+          onEditAction={(category) => {
+            setEditing(category);
+            setDialogOpen(true);
+          }}
+          onDeleteAction={(category) =>
+            onDelete(category._id ?? category.id)
+          }
         />
       )}
 
@@ -182,30 +178,6 @@ export default function CategoryPage() {
         loading={actionLoading}
         initialValues={editing}
       />
-
-      <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-        <p>
-          Page {page} of {totalPages}
-        </p>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page <= 1}
-            onClick={() => setPage((prev) => prev - 1)}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page >= totalPages}
-            onClick={() => setPage((prev) => prev + 1)}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
     </section>
   );
 }

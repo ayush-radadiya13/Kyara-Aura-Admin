@@ -50,7 +50,7 @@ function SidebarHeaderSection() {
   const ToggleIcon = isCollapsed ? PanelLeftOpen : PanelLeftClose;
 
   return (
-    <SidebarHeader className="border-b border-sidebar-border p-3">
+    <SidebarHeader className="border-b border-[#FFF8EC] p-3">
       <div className="flex items-center justify-between gap-2">
         <div className="overflow-hidden transition-all duration-300">
           <h2
@@ -88,7 +88,7 @@ function SidebarHeaderSection() {
 export function AdminSidebar({ onNavigate }) {
   const pathname = usePathname();
   const router = useRouter();
-  const logout = useAuthStore((state) => state.logout);
+  const logout = useAuthStore((state) => state.logout); 
   const isOpen = useSidebarStore((state) => state.isOpen);
   const setIsOpen = useSidebarStore((state) => state.setIsOpen);
 
@@ -109,13 +109,15 @@ export function AdminSidebar({ onNavigate }) {
     >
       <Sidebar
         collapsible="icon"
-        className="border-r border-sidebar-border/70 bg-sidebar transition-[width,left,right] duration-300 ease-in-out"
+        className="border-r border-[#FFF8EC] bg-[#DCCCAC] transition-[width,left,right] duration-300 ease-in-out"
       >
         <SidebarHeaderSection />
 
         <SidebarContent>
           <SidebarGroup className="pt-3">
-            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-sidebar-foreground/70">
+              Navigation
+            </SidebarGroupLabel>
             <SidebarMenu className="gap-1 px-2">
               {menuItems.map((item) => {
                 const Icon = item.icon;
@@ -131,8 +133,8 @@ export function AdminSidebar({ onNavigate }) {
                       className={cn(
                         "h-11 rounded-xl px-3 text-sm transition-all duration-300",
                         active
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
-                          : "text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          ? "bg-[#FFF8EC] text-sidebar-accent-foreground shadow-sm"
+                          : "text-sidebar-foreground/85 hover:bg-[#FFF8EC] hover:text-sidebar-accent-foreground"
                       )}
                     >
                       <Icon className="size-4 shrink-0" />
@@ -145,8 +147,8 @@ export function AdminSidebar({ onNavigate }) {
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className="border-t border-sidebar-border/70 p-3">
-          <div className="flex items-center gap-3 rounded-xl border border-sidebar-border/70 bg-sidebar-accent/30 p-2">
+        <SidebarFooter className="border-t border-[#FFF8EC] p-3">
+          <div className="flex items-center gap-3 rounded-xl border border-[#FFF8EC] bg-[#FFF8EC] p-2">
             <UserCircle2 className="size-8 shrink-0 text-sidebar-foreground/80" />
             <div className="min-w-0 group-data-[collapsible=icon]:hidden">
               <p className="truncate text-sm font-medium text-sidebar-foreground">

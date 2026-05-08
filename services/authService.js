@@ -1,8 +1,9 @@
-import axios from "axios";
+import { ADMIN_API_ROUTES } from "@/lib/routes";
+import { withoutTokenApi } from "@/utils/api";
 
 export const authService = {
   async login(payload) {
-    const response = await axios.post("/api/auth/login", payload);
-    return response.data;
+    const { data } = await withoutTokenApi.post(ADMIN_API_ROUTES.LOGIN, payload);
+    return data;
   },
 };

@@ -3,7 +3,8 @@
 import axios from "axios";
 import { getAdminToken } from "@/utils/localtoken";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE;
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE || "https://kayraaura.up.railway.app";
 
 function redirectToLogin() {
   if (typeof window !== "undefined") {
