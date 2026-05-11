@@ -1,8 +1,11 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
-import { Search, X } from "lucide-react";
 import { useRef, useState } from "react";
+import { X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+
+const SEARCH_INPUT_WIDTH = "w-[455px]";
 
 export function SearchInput({
   placeholder = "",
@@ -35,10 +38,10 @@ export function SearchInput({
   };
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
-      <span className="text-sm text-gray-700">Search:</span>
+    <div className={cn("flex items-center gap-2", className)}>
+      <span className="shrink-0 text-sm text-gray-700">Search:</span>
 
-      <div className="relative">
+      <div className={cn("relative shrink-0", SEARCH_INPUT_WIDTH)}>
         <Input
           placeholder={placeholder}
           value={value}
@@ -46,7 +49,7 @@ export function SearchInput({
           onKeyDown={(e) => {
             if (e.key === "Enter") triggerSearch();
           }}
-          className="h-8 w-[min(100%,360px)] max-w-[360px] rounded-none bg-white pl-2 pr-7 text-sm"
+          className="h-8 w-full rounded-none bg-white pl-2 pr-7 text-sm"
         />
 
         {value && (

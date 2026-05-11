@@ -3,13 +3,6 @@
 import { useMemo } from "react";
 import { DatatableLoader } from "@/components/common/datatable-loader";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
 import DataTable from "./data-table";
 import { Pagination } from "./data-table-pagination";
@@ -78,39 +71,8 @@ export function DataTableWrapper({
         </>
       )}
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-5">
-        <div className="flex items-center">
-          <SearchInput
-            className="w-[360px]"
-            debounce={550}
-            onSearchAction={onSearchAction}
-          />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Show:</span>
-
-          <Select
-            value={String(pageLimit)}
-            onValueChange={(val) => {
-              const newLimit = Number(val);
-              onPageChangeAction?.(0, newLimit);
-            }}
-          >
-            <SelectTrigger className="w-[80px]">
-              <SelectValue placeholder={limit} />
-            </SelectTrigger>
-
-            <SelectContent>
-              <SelectItem value="10">10</SelectItem>
-              <SelectItem value="25">25</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-              <SelectItem value="100">100</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <span className="text-sm text-gray-600">entries</span>
-        </div>
+      <div className="mt-4 flex flex-wrap items-center gap-3 px-5">
+        <SearchInput debounce={550} onSearchAction={onSearchAction} />
       </div>
 
       <div className="p-4">

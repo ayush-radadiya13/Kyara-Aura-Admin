@@ -19,7 +19,7 @@ export function getCategoryColumns(loading) {
       header: "Slug",
       meta: { width: "16%" },
       cell: ({ row }) => (
-        <span className="text-muted-foreground">{row.getValue("slug") || "-"}</span>
+        <span>{row.getValue("slug") || "-"}</span>
       ),
     },
     {
@@ -27,7 +27,7 @@ export function getCategoryColumns(loading) {
       header: "Description",
       meta: { width: "auto" },
       cell: ({ row }) => (
-        <span className="text-muted-foreground">{row.getValue("description")}</span>
+        <span>{row.getValue("description")}</span>
       ),
     },
     {
@@ -49,7 +49,13 @@ export function getCategoryColumns(loading) {
       cell: ({ row }) => {
         const status = row.getValue("is_active");
         return (
-          <Badge variant={status ? "default" : "secondary"}>
+          <Badge
+            className={
+              status
+                ? "bg-green-100 text-green-700 hover:bg-green-100"
+                : "bg-red-100 text-red-700 hover:bg-red-100"
+            }
+          >
             {status ? "Active" : "Inactive"}
           </Badge>
         );

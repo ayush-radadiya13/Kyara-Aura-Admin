@@ -1,5 +1,13 @@
 "use client";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 export const Pagination = ({
   currentPage,
   totalCount,
@@ -48,11 +56,35 @@ export const Pagination = ({
   const pages = buildPageNumbers();
 
   return (
-    <div className="mt-0 mb-5 flex w-full flex-col items-center justify-between bg-white px-4 sm:flex-row">
-      <div className="flex items-center gap-4">
+    <div className="mt-0 mb-5 flex w-full flex-col gap-4 bg-white px-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600">Show:</span>
+
+          <Select
+              value={String(limit)}
+              onValueChange={(val) => {
+                const newLimit = Number(val);
+                onPageChange(1, newLimit, 0);
+              }}
+          >
+            <SelectTrigger className="w-[80px]">
+              <SelectValue placeholder={limit} />
+            </SelectTrigger>
+
+            <SelectContent>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="25">25</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="text-sm text-gray-600">
           Showing {start} to {end} of {totalCount} entries
         </div>
+
+
       </div>
 
       <div className="flex items-center border border-gray-200 bg-white">
@@ -75,7 +107,7 @@ export const Pagination = ({
               onClick={() => goToPage(p)}
               className={`px-3 py-2 text-sm transition ${
                 p === currentPage
-                  ? "bg-[#405287] text-white"
+                  ? "bg-primary text-white"
                   : "text-gray-700 hover:bg-gray-100"
               }`}
             >

@@ -1,21 +1,29 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { customAxios } from "@/utils/api";
 
 export function useCrudMutation({ baseUrl, onSuccess, onError }) {
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+    onErrorRef.current = onError;
+  }, [onSuccess, onError]);
+
   const create = useCallback(
     async (data) => {
       try {
         const res = await customAxios.post(baseUrl, data);
-        onSuccess?.(res.data, "create");
+        onSuccessRef.current?.(res.data, "create");
         return res.data;
       } catch (error) {
-        onError?.(error, "create");
+        onErrorRef.current?.(error, "create");
         throw error;
       }
     },
-    [baseUrl, onSuccess, onError]
+    [baseUrl]
   );
 
   const update = useCallback(
@@ -24,14 +32,14 @@ export function useCrudMutation({ baseUrl, onSuccess, onError }) {
       if (!id) throw new Error("Missing ID for update");
       try {
         const res = await customAxios.put(`${baseUrl}/${id}`, data);
-        onSuccess?.(res.data, "update");
+        onSuccessRef.current?.(res.data, "update");
         return res.data;
       } catch (error) {
-        onError?.(error, "update");
+        onErrorRef.current?.(error, "update");
         throw error;
       }
     },
-    [baseUrl, onSuccess, onError]
+    [baseUrl]
   );
 
   const remove = useCallback(
@@ -39,14 +47,14 @@ export function useCrudMutation({ baseUrl, onSuccess, onError }) {
       if (!data?._id) throw new Error("Missing ID for delete");
       try {
         const res = await customAxios.delete(`${baseUrl}/${data._id}`);
-        onSuccess?.(res.data, "delete");
+        onSuccessRef.current?.(res.data, "delete");
         return res.data;
       } catch (error) {
-        onError?.(error, "delete");
+        onErrorRef.current?.(error, "delete");
         throw error;
       }
     },
-    [baseUrl, onSuccess, onError]
+    [baseUrl]
   );
 
   const getById = useCallback(
@@ -54,14 +62,14 @@ export function useCrudMutation({ baseUrl, onSuccess, onError }) {
       if (!id) throw new Error("getById called without id");
       try {
         const res = await customAxios.get(`${baseUrl}/${id}`);
-        onSuccess?.(res.data, "get");
+        onSuccessRef.current?.(res.data, "get");
         return res.data;
       } catch (error) {
-        onError?.(error, "get");
+        onErrorRef.current?.(error, "get");
         throw error;
       }
     },
-    [baseUrl, onSuccess, onError]
+    [baseUrl]
   );
 
   return { create, update, remove, getById };
