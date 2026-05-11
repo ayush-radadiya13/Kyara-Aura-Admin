@@ -9,9 +9,17 @@ export function getCategoryColumns(loading) {
     {
       accessorKey: "name",
       header: "Name",
-      meta: { width: "28%" },
+      meta: { width: "18%" },
       cell: ({ row }) => (
         <span className="font-medium">{row.getValue("name")}</span>
+      ),
+    },
+    {
+      accessorKey: "slug",
+      header: "Slug",
+      meta: { width: "16%" },
+      cell: ({ row }) => (
+        <span className="text-muted-foreground">{row.getValue("slug") || "-"}</span>
       ),
     },
     {
@@ -23,14 +31,26 @@ export function getCategoryColumns(loading) {
       ),
     },
     {
-      accessorKey: "status",
+      accessorKey: "sort_order",
+      header: "Sort",
+      meta: { width: "80px" },
+      cell: ({ row }) => <span>{row.getValue("sort_order") ?? "-"}</span>,
+    },
+    {
+      accessorKey: "parent_name",
+      header: "Parent",
+      meta: { width: "120px" },
+      cell: ({ row }) => <span>{row.getValue("parent_name") || "Root"}</span>,
+    },
+    {
+      accessorKey: "is_active",
       header: "Status",
       meta: { width: "120px" },
       cell: ({ row }) => {
-        const status = row.getValue("status");
+        const status = row.getValue("is_active");
         return (
-          <Badge variant={status === "active" ? "default" : "secondary"}>
-            {status}
+          <Badge variant={status ? "default" : "secondary"}>
+            {status ? "Active" : "Inactive"}
           </Badge>
         );
       },

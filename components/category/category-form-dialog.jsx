@@ -15,12 +15,22 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { categorySchema } from "@/validations/category-validation";
 
 const defaultValues = {
   name: "",
   description: "",
-  status: "active",
+  parent_id: "none",
+  sort_order: 1,
+  is_active: true,
+  slug: "",
 };
 
 export function CategoryFormDialog({
@@ -29,6 +39,7 @@ export function CategoryFormDialog({
   onSubmit,
   loading,
   initialValues,
+  categoryOptions = [],
 }) {
   const form = useForm({
     resolver: zodResolver(categorySchema),
@@ -37,14 +48,44 @@ export function CategoryFormDialog({
 
   useEffect(() => {
     if (initialValues) {
-      form.reset(initialValues);
+      form.reset({
+        name: initialValues.name || "",
+        description: initialValues.description || "",
+        parent_id:
+          initialValues.parent_id ?? initialValues.parent?._id ?? initialValues.parent?.id ?? "none",
+        sort_order: initialValues.sort_order ?? 1,
+        is_active: Boolean(initialValues.is_active),
+        slug: initialValues.slug || "",
+      });
       return;
     }
     form.reset(defaultValues);
   }, [initialValues, form, open]);
 
+  const watchedName = form.watch("name");
+  const currentSlug = form.watch("slug");
+  const slugEditedManually = Boolean(form.formState.dirtyFields.slug);
+
+  useEffect(() => {
+    if (!watchedName) return;
+
+    const generated = watchedName
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-");
+
+    if (!initialValues && !slugEditedManually) {
+      form.setValue("slug", generated, { shouldValidate: true, shouldDirty: false });
+    }
+  }, [watchedName, currentSlug, initialValues, form, slugEditedManually]);
+
   const submitHandler = form.handleSubmit(async (values) => {
-    await onSubmit(values);
+    await onSubmit({
+      ...values,
+      parent_id: values.parent_id === "none" ? null : values.parent_id,
+    });
     form.reset(defaultValues);
   });
 
@@ -72,6 +113,20 @@ export function CategoryFormDialog({
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="slug">Slug</Label>
+            <Input
+              id="slug"
+              placeholder="e.g. rings"
+              {...form.register("slug")}
+            />
+            {form.formState.errors.slug && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.slug.message}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Input
               id="description"
@@ -85,24 +140,74 @@ export function CategoryFormDialog({
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
-            <select
-              id="status"
-              className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
-              {...form.register("status")}
-            >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-            {form.formState.errors.status && (
-              <p className="text-sm text-destructive">
-                {form.formState.errors.status.message}
-              </p>
-            )}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Parent Category</Label>
+              <Select
+                value={form.watch("parent_id") ?? "none"}
+                onValueChange={(value) =>
+                  form.setValue("parent_id", value, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+              >
+                <SelectTrigger className="h-10 w-full">
+                  <SelectValue placeholder="Select parent category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None (Root Category)</SelectItem>
+                  {categoryOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {form.formState.errors.parent_id && (
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.parent_id.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sort_order">Sort Order</Label>
+              <Input id="sort_order" type="number" min={0} {...form.register("sort_order")} />
+              {form.formState.errors.sort_order && (
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.sort_order.message}
+                </p>
+              )}
+            </div>
           </div>
 
-          <DialogFooter>
+          <div className="flex items-center gap-2">
+            <input
+              id="is_active"
+              type="checkbox"
+              checked={form.watch("is_active")}
+              onChange={(e) =>
+                form.setValue("is_active", e.target.checked, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+              className="size-4 rounded border border-input"
+            />
+            <Label htmlFor="is_active">Active category</Label>
+          </div>
+          {form.formState.errors.is_active && (
+            <p className="text-sm text-destructive">
+              {form.formState.errors.is_active.message}
+            </p>
+          )}
+
+          <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+            Slug is auto-generated from name for new categories, and can be edited manually.
+          </div>
+
+          <DialogFooter className="pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>

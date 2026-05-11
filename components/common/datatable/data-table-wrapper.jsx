@@ -78,7 +78,7 @@ export function DataTableWrapper({
         </>
       )}
 
-      <div className="mt-4 flex items-center justify-between px-5">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-5">
         <div className="flex items-center">
           <SearchInput
             className="w-[360px]"
@@ -117,13 +117,15 @@ export function DataTableWrapper({
         <div className="relative bg-white">
           <DatatableLoader isLoading={isLoading} />
 
-          <DataTable
-            key={`${offset}-${search}-${sortAttr}-${sort}`}
-            columns={columns}
-            data={data}
-            selectedIds={selectedIds}
-            onSelectedIdsChange={onSelectedIdsChange}
-          />
+          <div className="overflow-x-auto">
+            <DataTable
+              key={`${offset}-${search}-${sortAttr}-${sort}`}
+              columns={columns}
+              data={data}
+              selectedIds={selectedIds}
+              onSelectedIdsChange={onSelectedIdsChange}
+            />
+          </div>
         </div>
       </div>
 
