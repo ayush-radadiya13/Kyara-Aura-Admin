@@ -28,7 +28,7 @@ import {
 const links = {
   dashboard: "/dashboard",
   orders: "/orders",
-  products: "/products",
+  products: "/product",
   customers: "/customers",
   category: "/category",
   settings: "/settings",
@@ -58,21 +58,6 @@ export function SidebarNav({
   className,
 }) {
   const pathname = usePathname();
-  const [managementOpen, setManagementOpen] = React.useState(() =>
-    isRouteActive(pathname, links.products) ||
-    isRouteActive(pathname, links.customers) ||
-    isRouteActive(pathname, links.category)
-  );
-
-  React.useEffect(() => {
-    if (
-      isRouteActive(pathname, links.products) ||
-      isRouteActive(pathname, links.customers) ||
-      isRouteActive(pathname, links.category)
-    ) {
-      setManagementOpen(true);
-    }
-  }, [pathname]);
 
   function withTooltip(label, node) {
     if (!enableTooltips || !collapsed) return node;
@@ -164,70 +149,59 @@ export function SidebarNav({
         </Link>
       )}
 
-      <Collapsible open={managementOpen} onOpenChange={setManagementOpen}>
-        {withTooltip(
-          "Management",
-          <CollapsibleTrigger
-            className={cn(
-              "flex w-full min-w-0 items-center gap-3 rounded-md px-2 py-2 text-start text-sm font-medium outline-none transition-colors",
-              "text-neutral-900 hover:bg-neutral-100/90 dark:text-sidebar-foreground dark:hover:bg-sidebar-accent/80",
-              collapsed && "md:justify-center md:px-0"
-            )}
+      {withTooltip(
+        "Products",
+        <Link
+          href={links.products}
+          className={topLinkClass(isRouteActive(pathname, links.products))}
+          onClick={onNavigate}
+        >
+          <IconCircle
+            className={topIconWrapClass(isRouteActive(pathname, links.products))}
           >
-            <IconCircle className="bg-neutral-100 text-neutral-600 dark:bg-sidebar-accent dark:text-sidebar-foreground/80">
-              <Package aria-hidden />
-            </IconCircle>
-            <span
-              className={cn(
-                "min-w-0 flex-1 truncate text-start",
-                collapsed && "md:sr-only"
-              )}
-            >
-              Management
-            </span>
-            <span className={cn("flex shrink-0 items-center justify-center", collapsed && "md:hidden")}>
-              {managementOpen ? (
-                <ChevronDown className="size-4 text-neutral-400" aria-hidden />
-              ) : (
-                <ChevronRight className="size-4 text-neutral-400" aria-hidden />
-              )}
-            </span>
-          </CollapsibleTrigger>
-        )}
-        <CollapsibleContent className="overflow-hidden">
-          <div
-            className={cn(
-              "ms-5 mt-1 border-s border-neutral-200 ps-3 dark:border-sidebar-border",
-              collapsed && "md:ms-0 md:border-none md:ps-0"
-            )}
+            <Package aria-hidden />
+          </IconCircle>
+          <span className={cn("truncate", collapsed && "md:sr-only")}>
+            Products
+          </span>
+        </Link>
+      )}
+
+      {withTooltip(
+        "Customers",
+        <Link
+          href={links.customers}
+          className={topLinkClass(isRouteActive(pathname, links.customers))}
+          onClick={onNavigate}
+        >
+          <IconCircle
+            className={topIconWrapClass(isRouteActive(pathname, links.customers))}
           >
-            <Link
-              href={links.products}
-              className={subLinkClass(isRouteActive(pathname, links.products))}
-              onClick={onNavigate}
-            >
-              <span className="size-1.5 shrink-0 rounded-full bg-neutral-300 dark:bg-muted-foreground/40" />
-              <span className="truncate">Products</span>
-            </Link>
-            <Link
-              href={links.customers}
-              className={subLinkClass(isRouteActive(pathname, links.customers))}
-              onClick={onNavigate}
-            >
-              <Users className="size-3.5" />
-              <span className="truncate">Customers</span>
-            </Link>
-            <Link
-              href={links.category}
-              className={subLinkClass(isRouteActive(pathname, links.category))}
-              onClick={onNavigate}
-            >
-              <span className="size-1.5 shrink-0 rounded-full bg-neutral-300 dark:bg-muted-foreground/40" />
-              <span className="truncate">Category</span>
-            </Link>
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
+            <Users aria-hidden />
+          </IconCircle>
+          <span className={cn("truncate", collapsed && "md:sr-only")}>
+            Customers
+          </span>
+        </Link>
+      )}
+
+      {withTooltip(
+        "Category",
+        <Link
+          href={links.category}
+          className={topLinkClass(isRouteActive(pathname, links.category))}
+          onClick={onNavigate}
+        >
+          <IconCircle
+            className={topIconWrapClass(isRouteActive(pathname, links.category))}
+          >
+            <Package aria-hidden />
+          </IconCircle>
+          <span className={cn("truncate", collapsed && "md:sr-only")}>
+            Category
+          </span>
+        </Link>
+      )}
 
       {withTooltip(
         "Settings",

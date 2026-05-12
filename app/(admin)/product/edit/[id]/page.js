@@ -1,0 +1,129 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { ProductForm } from "@/components/product/product-form";
+import { normalizeProduct } from "@/components/product/product-utils";
+import { Button } from "@/components/ui/button";
+import { useProduct } from "@/hooks/admin/module/use-product";
+import { useCrudMutation } from "@/hooks/admin/module/use-crud-mutation";
+import { useCategories } from "@/hooks/admin/module/use-categories";
+import { ADMIN_API_ROUTES } from "@/lib/routes";
+
+export default function EditProductPage() {
+  const router = useRouter();
+  const params = useParams();
+  const queryClient = useQueryClient();
+  const productId = String(params.id ?? "");
+  const [loading, setLoading] = useState(false);
+
+  const { data, isLoading, isError } = useProduct(productId);
+  const { data: categoriesData } = useCategories(1, 100, "", "all");
+
+  const categories = useMemo(
+    () => (categoriesData?.data || categoriesData?.results || []).map(normalizeProduct),
+    [categoriesData]
+  );
+  const categoryOptions = useMemo(
+    () =>
+      categories.map((category) => ({
+        label: category.name,
+        value: String(category.id),
+      })),
+    [categories]
+  );
+
+  const { update: updateProduct } = useCrudMutation({
+    baseUrl: ADMIN_API_ROUTES.UPDATE_PRODUCTS,
+    onSuccess: async (res) => {
+      toast.success(res?.message || "Product updated successfully");
+      await queryClient.invalidateQueries({ queryKey: ["products"] });
+      await queryClient.invalidateQueries({ queryKey: ["product", productId] });
+      router.push("/product");
+    },
+    onError: (error) => toast.error(error?.response?.data?.message || "Update failed"),
+  });
+
+  useEffect(() => {
+    if (!isError) return;
+    toast.error("Failed to fetch product details");
+    router.push("/product");
+  }, [isError, router]);
+
+  const handleSubmit = async (payload) => {
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      
+      // Add all text fields
+      Object.keys(payload).forEach(key => {
+        if (key !== 'images') {
+          formData.append(key, payload[key]);
+        }
+      });
+      
+      // Add images (both new files and existing URLs)
+      if (payload.images && payload.images.length > 0) {
+        payload.images.forEach((image, index) => {
+          if (image instanceof File) {
+            formData.append(`images[${index}]`, image);
+          } else if (typeof image === 'string') {
+            formData.append(`existing_images[${index}]`, image);
+          }
+        });
+      }
+      
+      formData.append('edit_value', productId);
+      formData.append('id', productId);
+      
+      await updateProduct(formData);
+    } catch (_) {
+      // Error toast is handled in the mutation hook callbacks.
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <section>
+      <div className="mb-6 flex items-center gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={() => router.push("/product")}
+          className="border-border bg-white text-foreground hover:bg-white"
+          aria-label="Back to products"
+        >
+          <ArrowLeft className="size-4" />
+        </Button>
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight">Edit Product</h2>
+          <p className="text-sm text-muted-foreground">
+            Update product details and keep your catalog organized.
+          </p>
+        </div>
+      </div>
+
+      <div className="rounded-md border border-border p-6">
+        {isLoading ? (
+          <div className="flex min-h-48 items-center justify-center">
+            <Loader2 className="size-6 animate-spin text-primary" />
+          </div>
+        ) : (
+          <ProductForm
+            mode="edit"
+            loading={loading}
+            initialValues={data}
+            categoryOptions={categoryOptions}
+            onCancel={() => router.push("/product")}
+            onSubmit={handleSubmit}
+          />
+        )}
+      </div>
+    </section>
+  );
+}
