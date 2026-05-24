@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { Loader2, Upload, X } from "lucide-react";
+import { useFieldArray, useForm } from "react-hook-form";
+import { Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { productSchema } from "@/validations/product-validation";
 
 const defaultValues = {
@@ -31,6 +39,7 @@ const defaultValues = {
   stock_quantity: 0,
   track_stock: false,
   images: [],
+  sizes: [],
 };
 
 export function ProductForm({
@@ -48,6 +57,11 @@ export function ProductForm({
 
   const [previewImages, setPreviewImages] = useState([]);
 
+  const { fields: sizeFields, append: appendSize, remove: removeSize } = useFieldArray({
+    control: form.control,
+    name: "sizes",
+  });
+
   useEffect(() => {
     if (initialValues) {
       form.reset({
@@ -63,10 +77,25 @@ export function ProductForm({
         stock_quantity: initialValues.stock_quantity || 0,
         track_stock: Boolean(initialValues.track_stock),
         images: initialValues.images || [],
+        sizes: initialValues.sizes?.length
+          ? initialValues.sizes.map((size) => ({
+              size_text: size.size_text ?? "",
+              quantity: size.quantity ?? "",
+              price: size.price ?? "",
+            }))
+          : [],
       });
-      
-      if (initialValues.images && initialValues.images.length > 0) {
-        setPreviewImages(initialValues.images);
+
+      if (initialValues.images?.length) {
+        setPreviewImages(
+          initialValues.images.map((image) =>
+            typeof image === "string"
+              ? { preview: image, name: `Image`, isExisting: true }
+              : image
+          )
+        );
+      } else {
+        setPreviewImages([]);
       }
       return;
     }
@@ -106,24 +135,37 @@ export function ProductForm({
       return;
     }
 
-    const newImages = validFiles.map(file => ({
+    const newImages = validFiles.map((file) => ({
       file,
       preview: URL.createObjectURL(file),
-      name: file.name
+      name: file.name,
+      isExisting: false,
     }));
 
-    setPreviewImages(prev => [...prev, ...newImages]);
-    form.setValue("images", [...(form.getValues("images") || []), ...validFiles]);
+    setPreviewImages((prev) => [...prev, ...newImages]);
+    form.setValue("images", [...(form.getValues("images") || []), ...validFiles], {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+    event.target.value = "";
   };
 
   const removeImage = (index) => {
-    const newImages = previewImages.filter((_, i) => i !== index);
-    setPreviewImages(newImages);
-    
-    const currentFiles = form.getValues("images") || [];
-    const newFiles = currentFiles.filter((_, i) => i !== index);
-    form.setValue("images", newFiles);
+    const removed = previewImages[index];
+    if (removed?.preview && !removed?.isExisting) {
+      URL.revokeObjectURL(removed.preview);
+    }
+
+    setPreviewImages((prev) => prev.filter((_, i) => i !== index));
+    form.setValue(
+      "images",
+      (form.getValues("images") || []).filter((_, i) => i !== index),
+      { shouldValidate: true, shouldDirty: true }
+    );
   };
+
+  const imageCount = previewImages.length;
+  const maxImagesReached = imageCount >= 5;
 
   const submitHandler = form.handleSubmit(async (values) => {
     await onSubmit(values);
@@ -266,8 +308,15 @@ export function ProductForm({
       </div>
 
       <div className="space-y-2">
-        <Label>Product Images</Label>
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <Label>Product Images</Label>
+          <span className="text-xs text-muted-foreground">{imageCount}/5 uploaded</span>
+        </div>
+        <div
+          className={`rounded-lg border-2 border-dashed p-4 ${
+            maxImagesReached ? "border-gray-200 bg-gray-50 opacity-60" : "border-gray-300"
+          }`}
+        >
           <input
             type="file"
             multiple
@@ -275,36 +324,126 @@ export function ProductForm({
             onChange={handleImageUpload}
             className="hidden"
             id="image-upload"
+            disabled={maxImagesReached}
           />
           <label
             htmlFor="image-upload"
-            className="flex flex-col items-center justify-center cursor-pointer"
+            className={`flex flex-col items-center justify-center ${
+              maxImagesReached ? "cursor-not-allowed" : "cursor-pointer"
+            }`}
           >
-            <Upload className="w-8 h-8 text-gray-400 mb-2" />
-            <span className="text-sm text-gray-600">Click to upload images</span>
+            <Upload className="mb-2 h-8 w-8 text-gray-400" />
+            <span className="text-sm text-gray-600">
+              {maxImagesReached ? "Maximum images reached" : "Click to upload images"}
+            </span>
             <span className="text-xs text-gray-500">Max 5 files, 2MB each</span>
           </label>
         </div>
 
         {previewImages.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 mt-2">
+          <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-5">
             {previewImages.map((image, index) => (
-              <div key={index} className="relative group">
+              <div key={`${image.name}-${index}`} className="group relative">
                 <img
                   src={image.preview || image}
                   alt={image.name || `Product image ${index + 1}`}
-                  className="w-full h-20 object-cover rounded border"
+                  className="h-20 w-full rounded border object-cover"
                 />
                 <button
                   type="button"
                   onClick={() => removeImage(index)}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute -top-2 -right-2 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
                 >
-                  <X className="w-3 h-3" />
+                  <X className="h-3 w-3" />
                 </button>
               </div>
             ))}
           </div>
+        )}
+        {form.formState.errors.images && (
+          <p className="text-sm text-destructive">{form.formState.errors.images.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Label>Product Sizes</Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => appendSize({ size_text: "", quantity: "", price: "" })}
+            className="border-border bg-white text-foreground hover:bg-white"
+          >
+            <Plus className="mr-1 size-4" />
+            Add
+          </Button>
+        </div>
+
+        {sizeFields.length > 0 ? (
+          <div className="rounded-md border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Size</TableHead>
+                  <TableHead>Qty</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead className="w-12" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sizeFields.map((field, index) => (
+                  <TableRow key={field.id}>
+                    <TableCell>
+                      <Input
+                        placeholder="e.g. S"
+                        {...form.register(`sizes.${index}.size_text`)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        {...form.register(`sizes.${index}.quantity`)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        {...form.register(`sizes.${index}.price`)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeSize(index)}
+                        aria-label="Remove size row"
+                      >
+                        <Trash2 className="size-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No sizes added yet. Click Add to create size variants.
+          </p>
+        )}
+        {form.formState.errors.sizes && (
+          <p className="text-sm text-destructive">
+            {typeof form.formState.errors.sizes.message === "string"
+              ? form.formState.errors.sizes.message
+              : "Please check size rows for errors."}
+          </p>
         )}
       </div>
 

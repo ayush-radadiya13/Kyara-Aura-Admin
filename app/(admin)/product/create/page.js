@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ProductForm } from "@/components/product/product-form";
-import { normalizeProduct } from "@/components/product/product-utils";
+import { buildProductFormData, normalizeProduct } from "@/components/product/product-utils";
 import { Button } from "@/components/ui/button";
 import { useCrudMutation } from "@/hooks/admin/module/use-crud-mutation";
 import { useCategories } from "@/hooks/admin/module/use-categories";
@@ -44,26 +44,7 @@ export default function CreateProductPage() {
   const handleSubmit = async (payload) => {
     setLoading(true);
     try {
-      const formData = new FormData();
-      
-      // Add all text fields
-      Object.keys(payload).forEach(key => {
-        if (key !== 'images') {
-          formData.append(key, payload[key]);
-        }
-      });
-      
-      // Add images
-      if (payload.images && payload.images.length > 0) {
-        payload.images.forEach((image, index) => {
-          if (image instanceof File) {
-            formData.append(`images[${index}]`, image);
-          }
-        });
-      }
-      
-      formData.append('edit_value', '0');
-      
+      const formData = buildProductFormData(payload, { editValue: 0 });
       await create(formData);
     } catch (_) {
       // Error toast is handled in the mutation hook callbacks.

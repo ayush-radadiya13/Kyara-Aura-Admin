@@ -23,7 +23,19 @@ export const productSchema = z.object({
   is_active: z.boolean(),
   stock_quantity: z.coerce.number().int().min(0, "Stock quantity must be 0 or greater"),
   track_stock: z.boolean(),
-  images: z.array(z.any()).optional(),
+  images: z.array(z.any()).max(5, "Maximum 5 images allowed").optional(),
+  sizes: z.preprocess(
+    (val) => (Array.isArray(val) ? val.filter((s) => s?.size_text?.trim()) : []),
+    z
+      .array(
+        z.object({
+          size_text: z.string().trim().min(1, "Size is required"),
+          quantity: z.coerce.number().int().min(0, "Quantity must be 0 or greater"),
+          price: z.coerce.number().min(0, "Price must be 0 or greater"),
+        })
+      )
+      .optional()
+  ),
 }).refine((data) => {
   if (data.sale_price && data.price) {
     return parseFloat(data.sale_price) < parseFloat(data.price);
