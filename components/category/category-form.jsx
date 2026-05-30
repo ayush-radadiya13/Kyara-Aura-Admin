@@ -1,29 +1,24 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import Image from "next/image";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { categorySchema } from "@/validations/category-validation";
+import { uploadMediaFile } from "@/services/media-service";
+import { toast } from "sonner";
 
 const defaultValues = {
   name: "",
   description: "",
-  parent_id: "none",
-  sort_order: 1,
   is_active: true,
   slug: "",
+  image: "",
 };
 
 export function CategoryForm({
@@ -32,27 +27,34 @@ export function CategoryForm({
   onCancel,
   loading,
   initialValues,
-  categoryOptions = [],
 }) {
   const form = useForm({
     resolver: zodResolver(categorySchema),
     defaultValues,
   });
+  const [previewImage, setPreviewImage] = useState(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   useEffect(() => {
     if (initialValues) {
+      const imageUrl = initialValues.image_url || initialValues.image || "";
+
       form.reset({
         name: initialValues.name || "",
         description: initialValues.description || "",
-        parent_id:
-          initialValues.parent_id ?? initialValues.parent?._id ?? initialValues.parent?.id ?? "none",
-        sort_order: initialValues.sort_order ?? 1,
         is_active: Boolean(initialValues.is_active),
         slug: initialValues.slug || "",
+        image: imageUrl,
       });
+      setPreviewImage(
+        imageUrl
+          ? { preview: imageUrl, name: "Category image", isExisting: true }
+          : null
+      );
       return;
     }
     form.reset(defaultValues);
+    setPreviewImage(null);
   }, [initialValues, form]);
 
   const watchedName = form.watch("name");
@@ -74,12 +76,54 @@ export function CategoryForm({
     }
   }, [watchedName, currentSlug, mode, form, slugEditedManually]);
 
-  const submitHandler = form.handleSubmit(async (values) => {
-    await onSubmit({
-      ...values,
-      parent_id: values.parent_id === "none" ? null : values.parent_id,
+  const handleImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Image must be 2MB or smaller.");
+      event.target.value = "";
+      return;
+    }
+
+    if (previewImage?.preview?.startsWith("blob:")) {
+      URL.revokeObjectURL(previewImage.preview);
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const imageUrl = await uploadMediaFile(file, "categories");
+
+      setPreviewImage({
+        preview: imageUrl,
+        name: file.name,
+        isExisting: false,
+      });
+      form.setValue("image", imageUrl, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error?.message || "Image upload failed");
+    } finally {
+      setIsUploadingImage(false);
+      event.target.value = "";
+    }
+  };
+
+  const removeImage = () => {
+    if (previewImage?.preview?.startsWith("blob:")) {
+      URL.revokeObjectURL(previewImage.preview);
+    }
+
+    setPreviewImage(null);
+    form.setValue("image", "", {
+      shouldValidate: true,
+      shouldDirty: true,
     });
-  });
+  };
+
+  const submitHandler = form.handleSubmit(onSubmit);
 
   return (
     <form onSubmit={submitHandler} className="space-y-4">
@@ -111,42 +155,59 @@ export function CategoryForm({
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label>Parent Category</Label>
-          <Select
-            value={form.watch("parent_id") ?? "none"}
-            onValueChange={(value) =>
-              form.setValue("parent_id", value, {
-                shouldDirty: true,
-                shouldValidate: true,
-              })
-            }
+      <div className="space-y-2">
+        <Label>Category Image</Label>
+        <div className="rounded-lg border-2 border-dashed border-gray-300 p-4">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="hidden"
+            id="category-image-upload"
+            disabled={isUploadingImage}
+          />
+          <label
+            htmlFor="category-image-upload"
+            className={`flex flex-col items-center justify-center ${
+              isUploadingImage ? "cursor-not-allowed" : "cursor-pointer"
+            }`}
           >
-            <SelectTrigger className="h-10 w-full">
-              <SelectValue placeholder="Select parent category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">None (Root Category)</SelectItem>
-              {categoryOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {form.formState.errors.parent_id && (
-            <p className="text-sm text-destructive">{form.formState.errors.parent_id.message}</p>
-          )}
+            {isUploadingImage ? (
+              <Loader2 className="mb-2 h-8 w-8 animate-spin text-gray-400" />
+            ) : (
+              <Upload className="mb-2 h-8 w-8 text-gray-400" />
+            )}
+            <span className="text-sm text-gray-600">
+              {isUploadingImage ? "Uploading image..." : "Click to upload image"}
+            </span>
+            <span className="text-xs text-gray-500">Max 2MB</span>
+          </label>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="sort_order">Sort Order</Label>
-          <Input id="sort_order" type="number" min={0} {...form.register("sort_order")} />
-          {form.formState.errors.sort_order && (
-            <p className="text-sm text-destructive">{form.formState.errors.sort_order.message}</p>
-          )}
-        </div>
+        {previewImage && (
+          <div className="mt-2 w-28">
+            <div className="group relative">
+              <Image
+                src={previewImage.preview}
+                alt={previewImage.name || "Category image"}
+                width={112}
+                height={80}
+                unoptimized
+                className="h-20 w-full rounded border object-cover"
+              />
+              <button
+                type="button"
+                onClick={removeImage}
+                className="absolute -top-2 -right-2 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+        )}
+        {form.formState.errors.image && (
+          <p className="text-sm text-destructive">{form.formState.errors.image.message}</p>
+        )}
       </div>
 
       <div className="flex items-center justify-between gap-4">
@@ -182,7 +243,7 @@ export function CategoryForm({
         </Button>
         <Button
           type="submit"
-          disabled={loading}
+          disabled={loading || isUploadingImage}
           className="bg-green-600 text-white hover:bg-green-600/90"
         >
           {loading ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}

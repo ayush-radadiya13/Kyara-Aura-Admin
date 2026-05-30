@@ -27,10 +27,10 @@ import {
 
 const links = {
   dashboard: "/dashboard",
-  orders: "/orders",
+  category: "/category",
   products: "/product",
   customers: "/customers",
-  category: "/category",
+  orders: "/orders",
   settings: "/settings",
 };
 

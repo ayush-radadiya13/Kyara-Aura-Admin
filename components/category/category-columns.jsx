@@ -1,11 +1,38 @@
 "use client";
 
+import Image from "next/image";
 import { Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-export function getCategoryColumns(loading) {
+export function getCategoryColumns(loading, offset = 0) {
   return (_sortAttr, _sort, _onSort, onDelete, onEdit) => [
+    {
+      accessorKey: "id",
+      header: "ID",
+      meta: { width: "70px" },
+      cell: ({ row }) => <span>{offset + row.index + 1}</span>,
+    },
+    {
+      accessorKey: "image_url",
+      header: "Image",
+      meta: { width: "90px" },
+      cell: ({ row }) => {
+        const image = row.getValue("image_url");
+        return image ? (
+          <Image
+            src={image}
+            alt={row.original.name || "Category image"}
+            width={40}
+            height={40}
+            unoptimized
+            className="h-10 w-10 rounded border object-cover"
+          />
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        );
+      },
+    },
     {
       accessorKey: "name",
       header: "Name",
@@ -29,18 +56,6 @@ export function getCategoryColumns(loading) {
       cell: ({ row }) => (
         <span>{row.getValue("description")}</span>
       ),
-    },
-    {
-      accessorKey: "sort_order",
-      header: "Sort",
-      meta: { width: "80px" },
-      cell: ({ row }) => <span>{row.getValue("sort_order") ?? "-"}</span>,
-    },
-    {
-      accessorKey: "parent_name",
-      header: "Parent",
-      meta: { width: "120px" },
-      cell: ({ row }) => <span>{row.getValue("parent_name") || "Root"}</span>,
     },
     {
       accessorKey: "is_active",

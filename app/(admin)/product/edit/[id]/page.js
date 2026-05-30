@@ -6,7 +6,8 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ProductForm } from "@/components/product/product-form";
-import { buildProductFormData } from "@/components/product/product-utils";
+import { buildProductPayload } from "@/components/product/product-utils";
+import { normalizeCategory } from "@/components/category/category-utils";
 import { Button } from "@/components/ui/button";
 import { useProduct } from "@/hooks/admin/module/use-product";
 import { useCrudMutation } from "@/hooks/admin/module/use-crud-mutation";
@@ -24,7 +25,7 @@ export default function EditProductPage() {
   const { data: categoriesData } = useCategories(1, 100, "", "all");
 
   const categories = useMemo(
-    () => (categoriesData?.data || categoriesData?.results || []).map(normalizeProduct),
+    () => (categoriesData?.data || categoriesData?.results || []).map(normalizeCategory),
     [categoriesData]
   );
   const categoryOptions = useMemo(
@@ -36,7 +37,7 @@ export default function EditProductPage() {
     [categories]
   );
 
-  const { update: updateProduct } = useCrudMutation({
+  const { create: saveProduct } = useCrudMutation({
     baseUrl: ADMIN_API_ROUTES.UPDATE_PRODUCTS,
     onSuccess: async (res) => {
       toast.success(res?.message || "Product updated successfully");
@@ -56,11 +57,10 @@ export default function EditProductPage() {
   const handleSubmit = async (payload) => {
     setLoading(true);
     try {
-      const formData = buildProductFormData(payload, {
+      const productPayload = buildProductPayload(payload, {
         editValue: productId,
-        productId,
       });
-      await updateProduct(formData);
+      await saveProduct(productPayload);
     } catch (_) {
       // Error toast is handled in the mutation hook callbacks.
     } finally {

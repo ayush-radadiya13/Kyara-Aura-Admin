@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { getProductColumns } from "@/components/product/product-columns";
 import { normalizeProduct } from "@/components/product/product-utils";
 import { DataTableWrapper } from "@/components/common/datatable/data-table-wrapper";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ export default function ProductPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [actionLoading, setActionLoading] = useState(false);
+  const [productToDeleteId, setProductToDeleteId] = useState(null);
   const { search, isActiveFilter, offset, limit, setSearch, setIsActiveFilter, setPagination } =
     useProductStore();
 
@@ -61,10 +63,13 @@ export default function ProductPage() {
     onError: (error) => toast.error(error?.response?.data?.message || "Delete failed"),
   });
 
-  const onDelete = async (id) => {
+  const onDelete = async () => {
+    if (!productToDeleteId) return;
+
     setActionLoading(true);
     try {
-      await remove({ _id: id });
+      await remove({ _id: productToDeleteId });
+      setProductToDeleteId(null);
     } catch (error) {
       toast.error(error.response?.data?.message || "Delete failed");
     } finally {
@@ -107,7 +112,7 @@ export default function ProductPage() {
       <div className="mb-4 flex items-center gap-3">
         <span className="text-sm font-medium text-muted-foreground">Status:</span>
         <Select value={isActiveFilter} onValueChange={setIsActiveFilter}>
-          <SelectTrigger className="h-9 w-[180px]">
+          <SelectTrigger className="h-10 w-[180px]">
             <SelectValue placeholder="All products" />
           </SelectTrigger>
           <SelectContent>
@@ -137,9 +142,24 @@ export default function ProductPage() {
             setPagination({ offset: newOffset, limit: newLimit });
           }}
           onEditAction={handleEdit}
-          onDeleteAction={(product) => onDelete(product.id)}
+          onDeleteAction={(product) => setProductToDeleteId(product.id)}
         />
       )}
+
+      <ConfirmDialog
+        open={Boolean(productToDeleteId)}
+        onOpenChange={(open) => {
+          if (!open && !actionLoading) {
+            setProductToDeleteId(null);
+          }
+        }}
+        title="Delete product?"
+        message="Are you sure you want to delete this product?"
+        confirmLabel="Delete"
+        loadingLabel="Deleting..."
+        isLoading={actionLoading}
+        onConfirm={onDelete}
+      />
     </section>
   );
 }

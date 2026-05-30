@@ -4,7 +4,6 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -15,7 +14,6 @@ import { loginSchema } from "../../validations/auth-validation";
 import { cn } from "@/lib/utils";
 
 export default function LoginPage() {
-  const router = useRouter();
   const { setAuth } = useAuthStore();
   const { isHydrated } = useAuthGuard();
   const [passwordShow, setPasswordShow] = useState(false);
@@ -42,7 +40,7 @@ export default function LoginPage() {
       if (!token) throw new Error("Access token not found");
       setAuth({ user, token });
       toast.success("Login successful");
-      router.replace("/dashboard");
+      window.location.replace("/dashboard");
     } catch (error) {
       const message =
         error?.response?.data?.error?.message ||
@@ -94,7 +92,7 @@ export default function LoginPage() {
                   id="signin-email"
                   type="email"
                   className={cn(
-                    "h-11 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm text-foreground outline-none transition-colors",
+                    "h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm text-foreground outline-none transition-colors",
                     "placeholder:text-muted-foreground",
                     "focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50",
                     form.formState.errors.email &&
@@ -127,7 +125,7 @@ export default function LoginPage() {
                     id="signin-password"
                     type={passwordShow ? "text" : "password"}
                     className={cn(
-                      "h-11 w-full rounded-l-md border border-input bg-transparent px-3 py-2 text-sm text-foreground outline-none transition-colors",
+                      "h-10 w-full rounded-l-md border border-input bg-transparent px-3 py-2 text-sm text-foreground outline-none transition-colors",
                       "placeholder:text-muted-foreground",
                       "focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50",
                       form.formState.errors.password &&
@@ -141,7 +139,7 @@ export default function LoginPage() {
                       passwordShow ? "Hide password" : "Show password"
                     }
                     onClick={() => setPasswordShow((prev) => !prev)}
-                    className="flex h-11 items-center justify-center rounded-r-md border border-l-0 border-input bg-muted px-3 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+                    className="flex h-10 items-center justify-center rounded-r-md border border-l-0 border-input bg-muted px-3 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
                   >
                     {passwordShow ? (
                       <Eye className="size-4" />

@@ -1,16 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CategoryForm } from "@/components/category/category-form";
-import { normalizeCategory } from "@/components/category/category-utils";
+import { buildCategoryPayload } from "@/components/category/category-utils";
 import { Button } from "@/components/ui/button";
 import { useCategory } from "@/hooks/admin/module/use-category";
 import { useCrudMutation } from "@/hooks/admin/module/use-crud-mutation";
-import { useCategories } from "@/hooks/admin/module/use-categories";
 import { ADMIN_API_ROUTES } from "@/lib/routes";
 
 export default function EditCategoryPage() {
@@ -21,22 +20,6 @@ export default function EditCategoryPage() {
   const [loading, setLoading] = useState(false);
 
   const { data, isLoading, isError } = useCategory(categoryId);
-  const { data: categoriesData } = useCategories(1, 100, "", "all");
-
-  const categories = useMemo(
-    () => (categoriesData?.data || categoriesData?.results || []).map(normalizeCategory),
-    [categoriesData]
-  );
-  const categoryOptions = useMemo(
-    () =>
-      categories
-        .filter((category) => String(category.id) !== categoryId)
-        .map((category) => ({
-          label: category.name,
-          value: String(category.id),
-        })),
-    [categories, categoryId]
-  );
 
   const { update: updateCategory } = useCrudMutation({
     baseUrl: ADMIN_API_ROUTES.UPDATE_CATEGORIES,
@@ -58,11 +41,11 @@ export default function EditCategoryPage() {
   const handleSubmit = async (payload) => {
     setLoading(true);
     try {
-      await updateCategory({
-        ...payload,
-        edit_value: Number(categoryId),
-        id: categoryId,
+      const categoryPayload = await buildCategoryPayload(payload, {
+        editValue: Number(categoryId),
+        categoryId,
       });
+      await updateCategory(categoryPayload);
     } catch (_) {
       // Error toast is handled in the mutation hook callbacks.
     } finally {
@@ -101,7 +84,6 @@ export default function EditCategoryPage() {
             mode="edit"
             loading={loading}
             initialValues={data}
-            categoryOptions={categoryOptions}
             onCancel={() => router.push("/category")}
             onSubmit={handleSubmit}
           />

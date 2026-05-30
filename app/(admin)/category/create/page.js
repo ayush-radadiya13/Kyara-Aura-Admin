@@ -1,35 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CategoryForm } from "@/components/category/category-form";
-import { normalizeCategory } from "@/components/category/category-utils";
+import { buildCategoryPayload } from "@/components/category/category-utils";
 import { Button } from "@/components/ui/button";
 import { useCrudMutation } from "@/hooks/admin/module/use-crud-mutation";
-import { useCategories } from "@/hooks/admin/module/use-categories";
 import { ADMIN_API_ROUTES } from "@/lib/routes";
 
 export default function CreateCategoryPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
-  const { data } = useCategories(1, 100, "", "all");
-
-  const categories = useMemo(
-    () => (data?.data || data?.results || []).map(normalizeCategory),
-    [data]
-  );
-  const categoryOptions = useMemo(
-    () =>
-      categories.map((category) => ({
-        label: category.name,
-        value: String(category.id),
-      })),
-    [categories]
-  );
 
   const { create } = useCrudMutation({
     baseUrl: ADMIN_API_ROUTES.CREATE_CATEGORIES,
@@ -44,10 +29,8 @@ export default function CreateCategoryPage() {
   const handleSubmit = async (payload) => {
     setLoading(true);
     try {
-      await create({
-        ...payload,
-        edit_value: 0,
-      });
+      const categoryPayload = await buildCategoryPayload(payload, { editValue: 0 });
+      await create(categoryPayload);
     } catch (_) {
       // Error toast is handled in the mutation hook callbacks.
     } finally {
@@ -78,7 +61,6 @@ export default function CreateCategoryPage() {
         <CategoryForm
           mode="create"
           loading={loading}
-          categoryOptions={categoryOptions}
           onCancel={() => router.push("/category")}
           onSubmit={handleSubmit}
         />

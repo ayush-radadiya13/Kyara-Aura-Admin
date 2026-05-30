@@ -6,7 +6,8 @@ import { ArrowLeft } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ProductForm } from "@/components/product/product-form";
-import { buildProductFormData, normalizeProduct } from "@/components/product/product-utils";
+import { buildProductPayload } from "@/components/product/product-utils";
+import { normalizeCategory } from "@/components/category/category-utils";
 import { Button } from "@/components/ui/button";
 import { useCrudMutation } from "@/hooks/admin/module/use-crud-mutation";
 import { useCategories } from "@/hooks/admin/module/use-categories";
@@ -19,7 +20,7 @@ export default function CreateProductPage() {
   const { data } = useCategories(1, 100, "", "all");
 
   const categories = useMemo(
-    () => (data?.data || data?.results || []).map(normalizeProduct),
+    () => (data?.data || data?.results || []).map(normalizeCategory),
     [data]
   );
   const categoryOptions = useMemo(
@@ -44,8 +45,8 @@ export default function CreateProductPage() {
   const handleSubmit = async (payload) => {
     setLoading(true);
     try {
-      const formData = buildProductFormData(payload, { editValue: 0 });
-      await create(formData);
+      const productPayload = buildProductPayload(payload, { editValue: 0 });
+      await create(productPayload);
     } catch (_) {
       // Error toast is handled in the mutation hook callbacks.
     } finally {

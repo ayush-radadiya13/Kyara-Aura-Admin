@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
 import { Loader2, Plus, Trash2, Upload, X } from "lucide-react";
@@ -25,22 +25,162 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { productSchema } from "@/validations/product-validation";
+import { uploadMediaFile } from "@/services/media-service";
+import { toast } from "sonner";
 
 const defaultValues = {
   name: "",
   slug: "",
   description: "",
   short_description: "",
-  price: "",
-  sale_price: "",
-  cost_price: "",
   category_id: "",
+  discount_percentage: 0,
+  brand: "",
+  base_material: "",
+  plating: "",
+  gemstone: "",
+  design: "",
+  occasion: "",
+  ideal_for: "",
+  package_contents: "",
   is_active: true,
-  stock_quantity: 0,
   track_stock: false,
   images: [],
   sizes: [],
 };
+
+const compactInputClass = "h-10 px-3 py-2 text-sm";
+const compactSelectClass = "h-10 w-full px-3 py-2 text-sm";
+const idealForOptions = [
+  { label: "Man", value: "men" },
+  { label: "Woman", value: "woman" },
+  { label: "Both", value: "both" },
+];
+
+const productDetailFields = [
+  { name: "brand", label: "Brand", placeholder: "Enter brand" },
+  { name: "base_material", label: "Base Material", placeholder: "e.g. Brass, Silver" },
+  { name: "plating", label: "Plating", placeholder: "e.g. Gold plated" },
+  { name: "gemstone", label: "Gemstone", placeholder: "e.g. Pearl, Zircon" },
+  { name: "design", label: "Design", placeholder: "Enter design" },
+  { name: "occasion", label: "Occasion", placeholder: "e.g. Wedding, Daily wear" },
+];
+
+function normalizePreviewImage(image) {
+  if (typeof image === "string") {
+    return { preview: image, name: "Image", isExisting: true };
+  }
+
+  const preview =
+    image?.preview ||
+    image?.url ||
+    image?.image_url ||
+    image?.path ||
+    image?.file ||
+    image?.location ||
+    image?.secure_url ||
+    image?.image ||
+    "";
+
+  return preview
+    ? {
+        ...image,
+        preview,
+        name: image?.name || "Image",
+        isExisting: image?.isExisting ?? true,
+      }
+    : null;
+}
+
+function normalizeCategoryLabel(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function resolveInitialCategoryId(initialValues) {
+  const value =
+    initialValues?.category_id ??
+    initialValues?.categoryId ??
+    initialValues?.categoryID ??
+    initialValues?.category?.id ??
+    initialValues?.category?._id;
+
+  return value !== undefined && value !== null && value !== "" ? String(value) : "";
+}
+
+function resolveInitialCategoryName(initialValues) {
+  return (
+    initialValues?.category_name ||
+    initialValues?.categoryName ||
+    initialValues?.category?.name ||
+    initialValues?.category?.title ||
+    initialValues?.category?.label ||
+    (typeof initialValues?.category === "string" ? initialValues.category : "")
+  );
+}
+
+function resolveCategoryIdFromOptions(initialValues, categoryOptions) {
+  const categoryId = resolveInitialCategoryId(initialValues);
+
+  if (categoryId) {
+    return categoryId;
+  }
+
+  const categoryName = resolveInitialCategoryName(initialValues);
+  if (!categoryName) {
+    return "";
+  }
+
+  const normalizedCategoryName = normalizeCategoryLabel(categoryName);
+  const option = categoryOptions.find(
+    (categoryOption) =>
+      String(categoryOption.value) === String(categoryName) ||
+      normalizeCategoryLabel(categoryOption.label) === normalizedCategoryName
+  );
+
+  return option ? String(option.value) : "";
+}
+
+function normalizeSelectOptions(options) {
+  return options
+      .map((option) => ({
+        label:
+            option?.label ||
+            option?.name ||
+            "",
+
+        value: String(
+            option?.value ??
+            option?.id ??
+            ""
+        ),
+      }))
+      .filter((option) => option.value !== "");
+}
+
+function formatSelectLabel(value) {
+  return String(value || "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function resolveInitialIdealFor(initialValues) {
+  const value = initialValues?.ideal_for ?? initialValues?.idealFor;
+
+  if (value === undefined || value === null || value === "") {
+    return "";
+  }
+
+  const stringValue = String(value);
+  const normalizedValue = normalizeCategoryLabel(stringValue);
+  const option = idealForOptions.find(
+    (idealForOption) =>
+      idealForOption.value === stringValue ||
+      normalizeCategoryLabel(idealForOption.value) === normalizedValue ||
+      normalizeCategoryLabel(idealForOption.label) === normalizedValue
+  );
+
+  return option ? option.value : stringValue;
+}
 
 export function ProductForm({
   mode = "create",
@@ -56,6 +196,39 @@ export function ProductForm({
   });
 
   const [previewImages, setPreviewImages] = useState([]);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const selectedCategoryId = String(form.watch("category_id") || "");
+  const selectedIdealFor = String(form.watch("ideal_for") || "");
+  const normalizedCategoryOptions = useMemo(
+    () => normalizeSelectOptions(categoryOptions),
+    [categoryOptions]
+  );
+  const categorySelectOptions = useMemo(() => {
+    if (
+      !selectedCategoryId ||
+      normalizedCategoryOptions.some((option) => option.value === selectedCategoryId)
+    ) {
+      return normalizedCategoryOptions;
+    }
+
+    const categoryName = resolveInitialCategoryName(initialValues);
+    return categoryName
+      ? [{ label: categoryName, value: selectedCategoryId }, ...normalizedCategoryOptions]
+      : normalizedCategoryOptions;
+  }, [initialValues, normalizedCategoryOptions, selectedCategoryId]);
+  const idealForSelectOptions = useMemo(() => {
+    if (
+      !selectedIdealFor ||
+      idealForOptions.some((option) => option.value === selectedIdealFor)
+    ) {
+      return idealForOptions;
+    }
+
+    return [
+      { label: formatSelectLabel(selectedIdealFor), value: selectedIdealFor },
+      ...idealForOptions,
+    ];
+  }, [selectedIdealFor]);
 
   const { fields: sizeFields, append: appendSize, remove: removeSize } = useFieldArray({
     control: form.control,
@@ -63,45 +236,76 @@ export function ProductForm({
   });
 
   useEffect(() => {
-    if (initialValues) {
-      form.reset({
-        name: initialValues.name || "",
-        slug: initialValues.slug || "",
-        description: initialValues.description || "",
-        short_description: initialValues.short_description || "",
-        price: initialValues.price || "",
-        sale_price: initialValues.sale_price || "",
-        cost_price: initialValues.cost_price || "",
-        category_id: initialValues.category_id || "",
-        is_active: Boolean(initialValues.is_active),
-        stock_quantity: initialValues.stock_quantity || 0,
-        track_stock: Boolean(initialValues.track_stock),
-        images: initialValues.images || [],
-        sizes: initialValues.sizes?.length
-          ? initialValues.sizes.map((size) => ({
-              size_text: size.size_text ?? "",
-              quantity: size.quantity ?? "",
-              price: size.price ?? "",
-            }))
-          : [],
-      });
+    if (!initialValues) return;
 
-      if (initialValues.images?.length) {
-        setPreviewImages(
-          initialValues.images.map((image) =>
-            typeof image === "string"
-              ? { preview: image, name: `Image`, isExisting: true }
-              : image
-          )
-        );
-      } else {
-        setPreviewImages([]);
-      }
+    const categoryId = String(
+        initialValues?.category_id ||
+        initialValues?.category?.id ||
+        ""
+    );
+
+    const idealFor = String(
+        initialValues?.ideal_for ||
+        ""
+    );
+
+    form.reset({
+      name: initialValues.name || "",
+      slug: initialValues.slug || "",
+      description: initialValues.description || "",
+      short_description: initialValues.short_description || "",
+      category_id: categoryId,
+      discount_percentage: initialValues.discount_percentage ?? 0,
+      brand: initialValues.brand || "",
+      base_material: initialValues.base_material || "",
+      plating: initialValues.plating || "",
+      gemstone: initialValues.gemstone || "",
+      design: initialValues.design || "",
+      occasion: initialValues.occasion || "",
+      ideal_for: idealFor,
+      package_contents: initialValues.package_contents || "",
+      is_active: Boolean(initialValues.is_active),
+      track_stock: Boolean(initialValues.track_stock),
+      images: initialValues.images || initialValues.image || [],
+      sizes:
+          initialValues.sizes?.map((size) => ({
+            size_text: size.size_text ?? "",
+            quantity: size.quantity ?? "",
+            price: size.price ?? "",
+          })) || [],
+    });
+
+    setTimeout(() => {
+      form.setValue("category_id", categoryId);
+      form.setValue("ideal_for", idealFor);
+    }, 0);
+
+    const previewImages = (
+        initialValues.images ||
+        initialValues.image ||
+        []
+    )
+        .map(normalizePreviewImage)
+        .filter(Boolean);
+
+    setPreviewImages(previewImages);
+
+  }, [initialValues]);
+
+
+  useEffect(() => {
+    if (!initialValues || form.getValues("category_id") || !normalizedCategoryOptions.length) {
       return;
     }
-    form.reset(defaultValues);
-    setPreviewImages([]);
-  }, [initialValues, form]);
+
+    const categoryId = resolveCategoryIdFromOptions(initialValues, normalizedCategoryOptions);
+    if (categoryId) {
+      form.setValue("category_id", categoryId, {
+        shouldDirty: false,
+        shouldValidate: true,
+      });
+    }
+  }, [normalizedCategoryOptions, initialValues, form]);
 
   const watchedName = form.watch("name");
   const currentSlug = form.watch("slug");
@@ -122,7 +326,7 @@ export function ProductForm({
     }
   }, [watchedName, currentSlug, mode, form, slugEditedManually]);
 
-  const handleImageUpload = (event) => {
+  const handleImageUpload = async (event) => {
     const files = Array.from(event.target.files);
     const validFiles = files.filter(file => file.size <= 2 * 1024 * 1024); // 2MB limit
     
@@ -132,27 +336,46 @@ export function ProductForm({
 
     if (previewImages.length + validFiles.length > 5) {
       alert("Maximum 5 images allowed.");
+      event.target.value = "";
       return;
     }
 
-    const newImages = validFiles.map((file) => ({
-      file,
-      preview: URL.createObjectURL(file),
-      name: file.name,
-      isExisting: false,
-    }));
+    if (!validFiles.length) {
+      event.target.value = "";
+      return;
+    }
 
-    setPreviewImages((prev) => [...prev, ...newImages]);
-    form.setValue("images", [...(form.getValues("images") || []), ...validFiles], {
-      shouldValidate: true,
-      shouldDirty: true,
-    });
-    event.target.value = "";
+    setIsUploadingImages(true);
+    try {
+      const uploadedImages = await Promise.all(
+        validFiles.map(async (file) => {
+          const url = await uploadMediaFile(file, "products");
+
+          return {
+            url,
+            preview: url,
+            name: file.name,
+            isExisting: false,
+          };
+        })
+      );
+
+      setPreviewImages((prev) => [...prev, ...uploadedImages]);
+      form.setValue("images", [...(form.getValues("images") || []), ...uploadedImages], {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error?.message || "Image upload failed");
+    } finally {
+      setIsUploadingImages(false);
+      event.target.value = "";
+    }
   };
 
   const removeImage = (index) => {
     const removed = previewImages[index];
-    if (removed?.preview && !removed?.isExisting) {
+    if (removed?.preview?.startsWith("blob:")) {
       URL.revokeObjectURL(removed.preview);
     }
 
@@ -171,25 +394,44 @@ export function ProductForm({
     await onSubmit(values);
   });
 
+  const renderFieldError = (fieldName) =>
+    form.formState.errors[fieldName] ? (
+      <p className="text-xs text-destructive">{form.formState.errors[fieldName].message}</p>
+    ) : null;
+
+  const renderTextInput = ({ name, label, placeholder, type = "text", ...inputProps }) => (
+    <div className="space-y-1.5">
+      <Label htmlFor={name} className="text-sm">
+        {label}
+      </Label>
+      <Input
+        id={name}
+        type={type}
+        placeholder={placeholder}
+        className={compactInputClass}
+        {...inputProps}
+        {...form.register(name)}
+      />
+      {renderFieldError(name)}
+    </div>
+  );
+
   return (
-    <form onSubmit={submitHandler} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="name">Product Name</Label>
-        <Input id="name" placeholder="Enter product name" {...form.register("name")} />
-        {form.formState.errors.name && (
-          <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
-        )}
+    <form onSubmit={submitHandler} className="space-y-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {renderTextInput({
+          name: "name",
+          label: "Product Name",
+          placeholder: "Enter product name",
+        })}
+        {renderTextInput({
+          name: "slug",
+          label: "Slug",
+          placeholder: "Enter slug",
+        })}
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="slug">Slug</Label>
-        <Input id="slug" placeholder="Enter slug" {...form.register("slug")} />
-        {form.formState.errors.slug && (
-          <p className="text-sm text-destructive">{form.formState.errors.slug.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <Label htmlFor="description">Description</Label>
         <Textarea
           id="description"
@@ -198,11 +440,11 @@ export function ProductForm({
           {...form.register("description")}
         />
         {form.formState.errors.description && (
-          <p className="text-sm text-destructive">{form.formState.errors.description.message}</p>
+          <p className="text-xs text-destructive">{form.formState.errors.description.message}</p>
         )}
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <Label htmlFor="short_description">Short Description</Label>
         <Textarea
           id="short_description"
@@ -211,100 +453,126 @@ export function ProductForm({
           {...form.register("short_description")}
         />
         {form.formState.errors.short_description && (
-          <p className="text-sm text-destructive">{form.formState.errors.short_description.message}</p>
+          <p className="text-xs text-destructive">{form.formState.errors.short_description.message}</p>
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="space-y-2">
-          <Label htmlFor="price">Regular Price</Label>
-          <Input id="price" type="number" step="0.01" min="0" placeholder="0.00" {...form.register("price")} />
-          {form.formState.errors.price && (
-            <p className="text-sm text-destructive">{form.formState.errors.price.message}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="sale_price">Sale Price</Label>
-          <Input id="sale_price" type="number" step="0.01" min="0" placeholder="0.00" {...form.register("sale_price")} />
-          {form.formState.errors.sale_price && (
-            <p className="text-sm text-destructive">{form.formState.errors.sale_price.message}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="cost_price">Cost Price</Label>
-          <Input id="cost_price" type="number" step="0.01" min="0" placeholder="0.00" {...form.register("cost_price")} />
-          {form.formState.errors.cost_price && (
-            <p className="text-sm text-destructive">{form.formState.errors.cost_price.message}</p>
-          )}
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label>Category</Label>
+        <div className="space-y-1.5">
+          <Label className="text-sm">Category</Label>
           <Select
-            value={form.watch("category_id") || "none"}
-            onValueChange={(value) =>
-              form.setValue("category_id", value === "none" ? "" : value, {
-                shouldDirty: true,
-                shouldValidate: true,
-              })
-            }
+              key={selectedCategoryId}
+              value={selectedCategoryId}
+              onValueChange={(value) => {
+                form.setValue("category_id", value, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+              }}
           >
-            <SelectTrigger className="h-10 w-full">
-              <SelectValue placeholder="Select category" />
+            <SelectTrigger className={compactSelectClass}>
+              <SelectValue placeholder="Select Category" />
             </SelectTrigger>
+
             <SelectContent>
-              <SelectItem value="none">No Category</SelectItem>
-              {categoryOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
+              {categorySelectOptions.map((option) => (
+                  <SelectItem
+                      key={option.value}
+                      value={String(option.value)}
+                  >
+                    {option.label}
+                  </SelectItem>
               ))}
             </SelectContent>
           </Select>
           {form.formState.errors.category_id && (
-            <p className="text-sm text-destructive">{form.formState.errors.category_id.message}</p>
+            <p className="text-xs text-destructive">{form.formState.errors.category_id.message}</p>
           )}
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="stock_quantity">Stock Quantity</Label>
-          <Input id="stock_quantity" type="number" min="0" {...form.register("stock_quantity")} />
-          {form.formState.errors.stock_quantity && (
-            <p className="text-sm text-destructive">{form.formState.errors.stock_quantity.message}</p>
-          )}
+        {renderTextInput({
+          name: "discount_percentage",
+          label: "Discount Percentage",
+          placeholder: "0",
+          type: "number",
+          min: "0",
+          max: "100",
+        })}
+      </div>
+
+      <div className="rounded-lg border border-border bg-muted/20 p-4">
+        <h3 className="mb-4 text-sm font-semibold text-foreground">Product Details</h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {productDetailFields.map((field) => (
+            <div key={field.name}>{renderTextInput(field)}</div>
+          ))}
+
+          <div className="space-y-1.5">
+            <Label className="text-sm">Ideal For</Label>
+            <Select
+                key={selectedIdealFor}
+                value={selectedIdealFor}
+                onValueChange={(value) => {
+                  form.setValue("ideal_for", value, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }}
+            >
+              <SelectTrigger className={compactSelectClass}>
+                <SelectValue placeholder="Select Ideal For" />
+              </SelectTrigger>
+
+              <SelectContent>
+                {idealForOptions.map((option) => (
+                    <SelectItem
+                        key={option.value}
+                        value={option.value}
+                    >
+                      {option.label}
+                    </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {renderFieldError("ideal_for")}
+          </div>
+
+          {renderTextInput({
+            name: "package_contents",
+            label: "Package Contents",
+            placeholder: "e.g. 1 Necklace, 1 Pair Earrings",
+          })}
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-4">
-        <Label htmlFor="track_stock">Track Stock</Label>
-        <Switch
-          id="track_stock"
-          checked={form.watch("track_stock")}
-          onCheckedChange={(checked) =>
-            form.setValue("track_stock", checked, {
-              shouldDirty: true,
-              shouldValidate: true,
-            })
-          }
-        />
-      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-border p-3">
+          <Label htmlFor="track_stock">Track Stock</Label>
+          <Switch
+            id="track_stock"
+            checked={form.watch("track_stock")}
+            onCheckedChange={(checked) =>
+              form.setValue("track_stock", checked, {
+                shouldDirty: true,
+                shouldValidate: true,
+              })
+            }
+          />
+        </div>
 
-      <div className="flex items-center justify-between gap-4">
-        <Label htmlFor="is_active">Active Product</Label>
-        <Switch
-          id="is_active"
-          checked={form.watch("is_active")}
-          onCheckedChange={(checked) =>
-            form.setValue("is_active", checked, {
-              shouldDirty: true,
-              shouldValidate: true,
-            })
-          }
-        />
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-border p-3">
+          <Label htmlFor="is_active">Active Product</Label>
+          <Switch
+            id="is_active"
+            checked={form.watch("is_active")}
+            onCheckedChange={(checked) =>
+              form.setValue("is_active", checked, {
+                shouldDirty: true,
+                shouldValidate: true,
+              })
+            }
+          />
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -324,17 +592,25 @@ export function ProductForm({
             onChange={handleImageUpload}
             className="hidden"
             id="image-upload"
-            disabled={maxImagesReached}
+            disabled={maxImagesReached || isUploadingImages}
           />
           <label
             htmlFor="image-upload"
             className={`flex flex-col items-center justify-center ${
-              maxImagesReached ? "cursor-not-allowed" : "cursor-pointer"
+              maxImagesReached || isUploadingImages ? "cursor-not-allowed" : "cursor-pointer"
             }`}
           >
-            <Upload className="mb-2 h-8 w-8 text-gray-400" />
+            {isUploadingImages ? (
+              <Loader2 className="mb-2 h-8 w-8 animate-spin text-gray-400" />
+            ) : (
+              <Upload className="mb-2 h-8 w-8 text-gray-400" />
+            )}
             <span className="text-sm text-gray-600">
-              {maxImagesReached ? "Maximum images reached" : "Click to upload images"}
+              {isUploadingImages
+                ? "Uploading images..."
+                : maxImagesReached
+                  ? "Maximum images reached"
+                  : "Click to upload images"}
             </span>
             <span className="text-xs text-gray-500">Max 5 files, 2MB each</span>
           </label>
@@ -397,6 +673,7 @@ export function ProductForm({
                     <TableCell>
                       <Input
                         placeholder="e.g. S"
+                        className={compactInputClass}
                         {...form.register(`sizes.${index}.size_text`)}
                       />
                     </TableCell>
@@ -405,6 +682,7 @@ export function ProductForm({
                         type="number"
                         min="0"
                         placeholder="0"
+                        className={compactInputClass}
                         {...form.register(`sizes.${index}.quantity`)}
                       />
                     </TableCell>
@@ -414,6 +692,7 @@ export function ProductForm({
                         min="0"
                         step="0.01"
                         placeholder="0.00"
+                        className={compactInputClass}
                         {...form.register(`sizes.${index}.price`)}
                       />
                     </TableCell>
@@ -463,7 +742,7 @@ export function ProductForm({
         </Button>
         <Button
           type="submit"
-          disabled={loading}
+          disabled={loading || isUploadingImages}
           className="bg-green-600 text-white hover:bg-green-600/90"
         >
           {loading ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}

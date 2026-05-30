@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { AUTH_COOKIE_KEY } from "@/lib/constants";
 
-const protectedPaths = ["/dashboard", "/category"];
+const protectedPaths = [
+  "/dashboard",
+  "/category",
+  "/product",
+  "/orders",
+  "/customers",
+  "/settings",
+];
 
 export function middleware(request) {
   const token = request.cookies.get(AUTH_COOKIE_KEY)?.value;
@@ -20,5 +27,13 @@ export function middleware(request) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/category/:path*", "/login"],
+  matcher: [
+    "/dashboard/:path*",
+    "/category/:path*",
+    "/product/:path*",
+    "/orders/:path*",
+    "/customers/:path*",
+    "/settings/:path*",
+    "/login",
+  ],
 };

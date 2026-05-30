@@ -28,7 +28,10 @@ export function useCrudMutation({ baseUrl, onSuccess, onError }) {
 
   const update = useCallback(
     async (data) => {
-      const id = data?.id || data?._id;
+      const id =
+        data instanceof FormData
+          ? data.get("id") || data.get("_id") || data.get("edit_value")
+          : data?.id || data?._id || data?.edit_value;
       if (!id) throw new Error("Missing ID for update");
       try {
         const res = await customAxios.put(`${baseUrl}/${id}`, data);

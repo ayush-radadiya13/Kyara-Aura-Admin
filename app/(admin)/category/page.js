@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { getCategoryColumns } from "@/components/category/category-columns";
 import { normalizeCategory } from "@/components/category/category-utils";
 import { DataTableWrapper } from "@/components/common/datatable/data-table-wrapper";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ export default function CategoryPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [actionLoading, setActionLoading] = useState(false);
+  const [categoryToDeleteId, setCategoryToDeleteId] = useState(null);
   const { search, isActiveFilter, offset, limit, setSearch, setIsActiveFilter, setPagination } =
     useCategoryStore();
 
@@ -47,8 +49,8 @@ export default function CategoryPage() {
   const totalCount = data?.meta?.total ?? categories.length;
 
   const getColumns = useMemo(
-    () => getCategoryColumns(actionLoading),
-    [actionLoading]
+    () => getCategoryColumns(actionLoading, offset),
+    [actionLoading, offset]
   );
 
   const { remove } = useCrudMutation({
@@ -61,10 +63,13 @@ export default function CategoryPage() {
     onError: (error) => toast.error(error?.response?.data?.message || "Delete failed"),
   });
 
-  const onDelete = async (id) => {
+  const onDelete = async () => {
+    if (!categoryToDeleteId) return;
+
     setActionLoading(true);
     try {
-      await remove({ _id: id });
+      await remove({ _id: categoryToDeleteId });
+      setCategoryToDeleteId(null);
     } catch (error) {
       toast.error(error.response?.data?.message || "Delete failed");
     } finally {
@@ -107,7 +112,7 @@ export default function CategoryPage() {
       <div className="mb-4 flex items-center gap-3">
         <span className="text-sm font-medium text-muted-foreground">Status:</span>
         <Select value={isActiveFilter} onValueChange={setIsActiveFilter}>
-          <SelectTrigger className="h-9 w-[180px]">
+          <SelectTrigger className="h-10 w-[180px]">
             <SelectValue placeholder="All categories" />
           </SelectTrigger>
           <SelectContent>
@@ -137,9 +142,24 @@ export default function CategoryPage() {
             setPagination({ offset: newOffset, limit: newLimit });
           }}
           onEditAction={handleEdit}
-          onDeleteAction={(category) => onDelete(category.id)}
+          onDeleteAction={(category) => setCategoryToDeleteId(category.id)}
         />
       )}
+
+      <ConfirmDialog
+        open={Boolean(categoryToDeleteId)}
+        onOpenChange={(open) => {
+          if (!open && !actionLoading) {
+            setCategoryToDeleteId(null);
+          }
+        }}
+        title="Delete category?"
+        message="Are you sure you want to delete this category?"
+        confirmLabel="Delete"
+        loadingLabel="Deleting..."
+        isLoading={actionLoading}
+        onConfirm={onDelete}
+      />
     </section>
   );
 }

@@ -49,7 +49,7 @@ export function SearchInput({
           onKeyDown={(e) => {
             if (e.key === "Enter") triggerSearch();
           }}
-          className="h-8 w-full rounded-none bg-white pl-2 pr-7 text-sm"
+          className="h-10 w-full rounded-none bg-white pl-2 pr-7 text-sm"
         />
 
         {value && (
