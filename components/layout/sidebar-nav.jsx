@@ -32,6 +32,7 @@ const links = {
   customers: "/customers",
   orders: "/orders",
   settings: "/settings",
+  settingsBanner: "/settings/banner",
 };
 
 function isRouteActive(pathname, href) {
@@ -58,6 +59,9 @@ export function SidebarNav({
   className,
 }) {
   const pathname = usePathname();
+  const settingsActive = isRouteActive(pathname, links.settings);
+  const [settingsOpen, setSettingsOpen] = React.useState(settingsActive);
+  const effectiveSettingsOpen = settingsActive || settingsOpen;
 
   function withTooltip(label, node) {
     if (!enableTooltips || !collapsed) return node;
@@ -203,22 +207,43 @@ export function SidebarNav({
         </Link>
       )}
 
-      {withTooltip(
-        "Settings",
-        <Link
-          href={links.settings}
-          className={topLinkClass(isRouteActive(pathname, links.settings))}
-          onClick={onNavigate}
-        >
-          <IconCircle
-            className={topIconWrapClass(isRouteActive(pathname, links.settings))}
+      {collapsed ? (
+        withTooltip(
+          "Settings",
+          <Link
+            href={links.settings}
+            className={topLinkClass(settingsActive)}
+            onClick={onNavigate}
           >
-            <Settings aria-hidden />
-          </IconCircle>
-          <span className={cn("truncate", collapsed && "md:sr-only")}>
-            Settings
-          </span>
-        </Link>
+            <IconCircle className={topIconWrapClass(settingsActive)}>
+              <Settings aria-hidden />
+            </IconCircle>
+            <span className="md:sr-only">Settings</span>
+          </Link>
+        )
+      ) : (
+        <Collapsible open={effectiveSettingsOpen} onOpenChange={setSettingsOpen}>
+          <CollapsibleTrigger className={topLinkClass(settingsActive)}>
+            <IconCircle className={topIconWrapClass(settingsActive)}>
+              <Settings aria-hidden />
+            </IconCircle>
+            <span className="truncate">Settings</span>
+            {effectiveSettingsOpen ? (
+              <ChevronDown className="ms-auto size-4" aria-hidden />
+            ) : (
+              <ChevronRight className="ms-auto size-4" aria-hidden />
+            )}
+          </CollapsibleTrigger>
+          <CollapsibleContent className="ms-6 mt-1 border-s border-neutral-200 ps-2 dark:border-sidebar-border">
+            <Link
+              href={links.settingsBanner}
+              className={subLinkClass(pathname === links.settingsBanner)}
+              onClick={onNavigate}
+            >
+              Banner
+            </Link>
+          </CollapsibleContent>
+        </Collapsible>
       )}
     </nav>
   );

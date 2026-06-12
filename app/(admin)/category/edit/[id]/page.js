@@ -21,7 +21,7 @@ export default function EditCategoryPage() {
 
   const { data, isLoading, isError } = useCategory(categoryId);
 
-  const { update: updateCategory } = useCrudMutation({
+  const { create: saveCategory } = useCrudMutation({
     baseUrl: ADMIN_API_ROUTES.UPDATE_CATEGORIES,
     onSuccess: async (res) => {
       toast.success(res?.message || "Category updated successfully");
@@ -45,7 +45,7 @@ export default function EditCategoryPage() {
         editValue: Number(categoryId),
         categoryId,
       });
-      await updateCategory(categoryPayload);
+      await saveCategory(categoryPayload);
     } catch (_) {
       // Error toast is handled in the mutation hook callbacks.
     } finally {

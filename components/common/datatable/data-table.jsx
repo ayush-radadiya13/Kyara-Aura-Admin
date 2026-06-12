@@ -6,6 +6,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   Table,
@@ -56,6 +57,35 @@ export default function DataTable({ columns, data, selectedIds, onSelectedIdsCha
     },
   });
 
+  const renderHeaderContent = (header) => {
+    if (header.isPlaceholder) return null;
+
+    const content = flexRender(header.column.columnDef.header, header.getContext());
+    const canSort = header.column.getCanSort();
+    const sortDirection = header.column.getIsSorted();
+
+    if (!canSort) return content;
+
+    return (
+      <button
+        type="button"
+        className="flex w-full items-center gap-1 text-left font-semibold"
+        onClick={header.column.getToggleSortingHandler()}
+      >
+        <span>{content}</span>
+        <span className="text-muted-foreground">
+          {sortDirection === "asc" ? (
+            <ArrowUp className="size-3.5" aria-label="Sorted ascending" />
+          ) : sortDirection === "desc" ? (
+            <ArrowDown className="size-3.5" aria-label="Sorted descending" />
+          ) : (
+            <ArrowUpDown className="size-3.5" aria-label="Sort ascending or descending" />
+          )}
+        </span>
+      </button>
+    );
+  };
+
   return (
     <Table className="w-full table-fixed">
       <TableHeader>
@@ -67,9 +97,7 @@ export default function DataTable({ columns, data, selectedIds, onSelectedIdsCha
                 className="whitespace-normal break-words border border-gray-200 bg-white px-4 py-2 text-sm font-semibold align-middle"
                 style={{ width: header.column.columnDef.meta?.width }}
               >
-                {header.isPlaceholder
-                  ? null
-                  : flexRender(header.column.columnDef.header, header.getContext())}
+                {renderHeaderContent(header)}
               </TableHead>
             ))}
           </TableRow>
