@@ -3,10 +3,7 @@
 import * as React from "react";
 import {
   ArrowLeftRight,
-  Menu,
   Moon,
-  PanelLeftClose,
-  PanelLeftOpen,
   Sun,
 } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -14,8 +11,8 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 import { useDirectionStore } from "@/store/use-direction-store";
-import { useSidebarStore } from "@/store/use-sidebar-store";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,22 +25,33 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getAdminPageTitle } from "@/lib/admin-page-title";
 import { useAuthStore } from "@/store/auth-store";
 
+function subscribeToClientMount(onStoreChange) {
+  const timeoutId = window.setTimeout(onStoreChange, 0);
+
+  return () => window.clearTimeout(timeoutId);
+}
+
+function getClientMountSnapshot() {
+  return true;
+}
+
+function getServerMountSnapshot() {
+  return false;
+}
+
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = useAuthStore();
   const pageTitle = getAdminPageTitle(pathname ?? "/");
   const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
-  const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
-  const toggleMobileSidebar = useSidebarStore((s) => s.toggleMobileSidebar);
-  const isCollapsed = useSidebarStore((s) => s.isCollapsed);
+  const mounted = React.useSyncExternalStore(
+    subscribeToClientMount,
+    getClientMountSnapshot,
+    getServerMountSnapshot
+  );
   const direction = useDirectionStore((s) => s.direction);
   const toggleDirection = useDirectionStore((s) => s.toggleDirection);
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const isDark = mounted && resolvedTheme === "dark";
 
@@ -55,31 +63,7 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-4 border-b border-border bg-background px-4 shadow-sm backdrop-blur-md">
       <div className="flex flex-1 items-center gap-3">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="md:hidden"
-          onClick={toggleMobileSidebar}
-          aria-label="Open navigation menu"
-        >
-          <Menu className="size-4" aria-hidden />
-        </Button>
-
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="hidden md:inline-flex"
-          onClick={toggleSidebar}
-          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {isCollapsed ? (
-            <PanelLeftOpen className="size-4" aria-hidden />
-          ) : (
-            <PanelLeftClose className="size-4" aria-hidden />
-          )}
-        </Button>
+        <SidebarTrigger className="size-7" />
 
         <span className="min-w-0 truncate font-heading text-base font-semibold text-foreground">
           {pageTitle}

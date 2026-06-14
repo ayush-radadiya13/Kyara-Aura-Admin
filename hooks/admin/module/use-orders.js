@@ -1,20 +1,37 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { normalizeOrder, unwrapOrderResponse } from "@/components/order/order-utils";
 import { ADMIN_API_ROUTES } from "@/lib/routes";
 import { customAxios } from "@/utils/api";
 
-export function useOrders(page, pageSize, search) {
+function cleanParams(params) {
+  return Object.fromEntries(
+    Object.entries(params).filter(
+      ([, value]) =>
+        value !== "" && value !== "all" && value !== undefined && value !== null
+    )
+  );
+}
+
+export function useOrders(page, pageSize, filters, type) {
   return useQuery({
-    queryKey: ["orders", page, pageSize, search],
+    queryKey: ["orders", page, pageSize, filters, type],
     queryFn: async () => {
       const res = await customAxios.get(ADMIN_API_ROUTES.GET_ORDER, {
-        params: {
+        params: cleanParams({
           page,
           per_page: pageSize,
-          ...(search?.trim() ? { search: search.trim() } : {}),
-        },
+          type,
+          search: filters.search?.trim(),
+          status: filters.status,
+          payment_status: filters.payment_status,
+          shipping_status: filters.shipping_status,
+          shipping_provider: filters.shipping_provider?.trim(),
+          waybill: filters.waybill?.trim(),
+          shipment_created_from: filters.shipment_created_from,
+          shipment_created_to: filters.shipment_created_to,
+        }),
       });
 
       return res.data;
@@ -36,6 +53,64 @@ export function useOrderDetails(orderId, enabled = true) {
     enabled: Boolean(orderId) && enabled,
     retry: false,
     refetchOnWindowFocus: false,
+  });
+}
+
+export function useCreateOrderShipment(options) {
+  return useMutation({
+    mutationFn: async (orderId) => {
+      if (!orderId) throw new Error("Missing order ID");
+
+      const res = await customAxios.post(
+        ADMIN_API_ROUTES.CREATE_ORDER_SHIPMENT(orderId)
+      );
+      return res.data;
+    },
+    ...options,
+  });
+}
+
+export function useCancelOrderShipment(options) {
+  return useMutation({
+    mutationFn: async (orderId) => {
+      if (!orderId) throw new Error("Missing order ID");
+
+      const res = await customAxios.post(
+        ADMIN_API_ROUTES.CANCEL_ORDER_SHIPMENT(orderId)
+      );
+      return res.data;
+    },
+    ...options,
+  });
+}
+
+function getLabelFilename(headers, orderId) {
+  const disposition = headers?.["content-disposition"] || "";
+  const filenameMatch = disposition.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i);
+
+  if (filenameMatch?.[1]) {
+    return decodeURIComponent(filenameMatch[1]);
+  }
+
+  return `order-${orderId}-label.pdf`;
+}
+
+export function useDownloadOrderShipmentLabel(options) {
+  return useMutation({
+    mutationFn: async (orderId) => {
+      if (!orderId) throw new Error("Missing order ID");
+
+      const res = await customAxios.get(
+        ADMIN_API_ROUTES.DOWNLOAD_ORDER_SHIPMENT_LABEL(orderId),
+        { responseType: "blob" }
+      );
+
+      return {
+        blob: res.data,
+        filename: getLabelFilename(res.headers, orderId),
+      };
+    },
+    ...options,
   });
 }
 

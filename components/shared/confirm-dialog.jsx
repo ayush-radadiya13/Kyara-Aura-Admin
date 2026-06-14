@@ -16,6 +16,7 @@ export function ConfirmDialog({
   title = "Confirm action",
   message = "Are you sure you want to continue?",
   confirmLabel = "Confirm",
+  confirmVariant = "destructive",
   loadingLabel = "Processing...",
   isLoading = false,
   onConfirm,
@@ -36,7 +37,7 @@ export function ConfirmDialog({
           >
             Cancel
           </Button>
-          <Button variant="destructive" onClick={onConfirm} disabled={isLoading}>
+          <Button variant={confirmVariant} onClick={onConfirm} disabled={isLoading}>
             {isLoading ? loadingLabel : confirmLabel}
           </Button>
         </DialogFooter>

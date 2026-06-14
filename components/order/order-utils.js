@@ -74,6 +74,22 @@ export function getPaymentStatusClass(status) {
   return "bg-gray-100 text-gray-700 hover:bg-gray-100";
 }
 
+export function isCodOrder(order) {
+  const checkoutType = String(order?.checkout_type || "").toLowerCase();
+  const paymentMethod = String(order?.payment_method || "").toLowerCase();
+
+  return [checkoutType, paymentMethod].some((value) =>
+    ["cod", "cash_on_delivery", "cash on delivery"].includes(value)
+  );
+}
+
+export function isPendingAdminConfirmation(order) {
+  return (
+    String(order?.status || "").toLowerCase() ===
+    "pending_admin_confirmation"
+  );
+}
+
 export function normalizeOrder(item) {
   return {
     id: item?.id ?? item?._id ?? null,
@@ -87,6 +103,15 @@ export function normalizeOrder(item) {
     razorpay_payment_id: item?.razorpay_payment_id ?? "",
     paid_at: item?.paid_at ?? null,
     payment_failed_at: item?.payment_failed_at ?? null,
+    shipment: item?.shipment ?? null,
+    shipment_detail: item?.shipment_detail ?? null,
+    shipment_details: item?.shipment_details ?? null,
+    shipment_status: item?.shipment_status ?? "",
+    shipment_id: item?.shipment_id ?? null,
+    courier_shipment_id: item?.courier_shipment_id ?? null,
+    awb_code: item?.awb_code ?? "",
+    tracking_number: item?.tracking_number ?? "",
+    courier_tracking_number: item?.courier_tracking_number ?? "",
     subtotal: item?.subtotal ?? 0,
     tax_amount: item?.tax_amount ?? 0,
     shipping_amount: item?.shipping_amount ?? 0,

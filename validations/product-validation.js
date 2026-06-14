@@ -15,6 +15,10 @@ export const productSchema = z.object({
     .number()
     .min(0, "Discount percentage must be 0 or greater")
     .max(100, "Discount percentage must be 100 or less"),
+  weight_grams: z.preprocess(
+    (val) => (val === "" || val === null ? undefined : val),
+    z.coerce.number().min(0, "Weight must be 0 or greater").optional()
+  ),
   brand: z.string().trim().optional(),
   base_material: z.string().trim().optional(),
   plating: z.string().trim().optional(),
@@ -25,13 +29,14 @@ export const productSchema = z.object({
   package_contents: z.string().trim().optional(),
   is_active: z.boolean(),
   track_stock: z.boolean(),
+  is_collection: z.boolean().optional(),
   images: z.array(z.any()).max(5, "Maximum 5 images allowed").optional(),
   sizes: z.preprocess(
-    (val) => (Array.isArray(val) ? val.filter((s) => s?.size_text?.trim()) : []),
+    (val) => (Array.isArray(val) ? val.filter((s) => String(s?.size_id || "").trim()) : []),
     z
       .array(
         z.object({
-          size_text: z.string().trim().min(1, "Size is required"),
+          size_id: z.string().trim().min(1, "Size is required"),
           quantity: z.coerce.number().int().min(0, "Quantity must be 0 or greater"),
           price: z.coerce.number().min(0, "Price must be 0 or greater"),
         })

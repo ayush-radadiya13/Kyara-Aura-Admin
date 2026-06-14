@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useProduct } from "@/hooks/admin/module/use-product";
 import { useCrudMutation } from "@/hooks/admin/module/use-crud-mutation";
 import { useCategories } from "@/hooks/admin/module/use-categories";
+import { useSizeOptions } from "@/hooks/admin/module/use-sizes";
 import { ADMIN_API_ROUTES } from "@/lib/routes";
 
 export default function EditProductPage() {
@@ -23,6 +24,7 @@ export default function EditProductPage() {
 
   const { data, isLoading, isError } = useProduct(productId);
   const { data: categoriesData } = useCategories(1, 100, "", "all");
+  const { data: sizes = [] } = useSizeOptions();
 
   const categories = useMemo(
     () => (categoriesData?.data || categoriesData?.results || []).map(normalizeCategory),
@@ -35,6 +37,14 @@ export default function EditProductPage() {
         value: String(category.id),
       })),
     [categories]
+  );
+  const sizeOptions = useMemo(
+    () =>
+      sizes.map((size) => ({
+        label: size.name,
+        value: String(size.id),
+      })),
+    [sizes]
   );
 
   const { create: saveProduct } = useCrudMutation({
@@ -89,7 +99,7 @@ export default function EditProductPage() {
         </div>
       </div>
 
-      <div className="rounded-md border border-border p-6">
+      <div >
         {isLoading ? (
           <div className="flex min-h-48 items-center justify-center">
             <Loader2 className="size-6 animate-spin text-primary" />
@@ -100,6 +110,7 @@ export default function EditProductPage() {
             loading={loading}
             initialValues={data}
             categoryOptions={categoryOptions}
+            sizeOptions={sizeOptions}
             onCancel={() => router.push("/product")}
             onSubmit={handleSubmit}
           />

@@ -76,6 +76,17 @@ function resolveProductCategoryName(item) {
   return typeof category === "string" && !isNumericString(category) ? category : "";
 }
 
+function resolveProductSizeId(size) {
+  const sizeId =
+    size?.size_id ??
+    size?.sizeId ??
+    size?.size?.id ??
+    size?.size?._id ??
+    size?.id;
+
+  return sizeId !== undefined && sizeId !== null && sizeId !== "" ? sizeId : "";
+}
+
 export function normalizeProduct(item) {
   return {
     id: item?.id ?? item?._id ?? null,
@@ -84,6 +95,7 @@ export function normalizeProduct(item) {
     description: item?.description ?? "",
     short_description: item?.short_description ?? "",
     discount_percentage: item?.discount_percentage ?? "",
+    weight_grams: item?.weight_grams ?? "",
     category_id: resolveProductCategoryId(item),
     category_name: resolveProductCategoryName(item),
     brand: item?.brand ?? "",
@@ -96,9 +108,11 @@ export function normalizeProduct(item) {
     package_contents: item?.package_contents ?? item?.packageContents ?? "",
     is_active: Boolean(item?.is_active),
     track_stock: Boolean(item?.track_stock),
+    is_collection: Boolean(item?.is_collection ?? item?.add_collection),
     images: normalizeProductImages(item),
     sizes: (item?.sizes ?? []).map((size) => ({
-      size_text: size?.size_text ?? "",
+      size_id: resolveProductSizeId(size),
+      size_text: size?.size_text ?? size?.size?.name ?? size?.name ?? "",
       quantity: size?.quantity ?? "",
       price: size?.price ?? "",
     })),
@@ -158,8 +172,13 @@ export function buildProductPayload(
     short_description: payload.short_description ?? "",
     category_id: toNumberOrValue(payload.category_id),
     discount_percentage: toNumberOrValue(payload.discount_percentage ?? 0),
+    weight_grams:
+      payload.weight_grams === "" || payload.weight_grams === undefined
+        ? null
+        : toNumberOrValue(payload.weight_grams),
     is_active: Boolean(payload.is_active),
     track_stock: Boolean(payload.track_stock),
+    is_collection: Boolean(payload.is_collection ?? payload.add_collection),
     brand: payload.brand ?? "",
     base_material: payload.base_material ?? "",
     plating: payload.plating ?? "",
@@ -169,9 +188,9 @@ export function buildProductPayload(
     ideal_for: payload.ideal_for ?? "",
     package_contents: payload.package_contents ?? "",
     sizes: (payload.sizes ?? [])
-      .filter((size) => size?.size_text?.trim())
+      .filter((size) => String(size?.size_id || "").trim())
       .map((size) => ({
-        size_text: size.size_text.trim(),
+        size_id: toNumberOrValue(size.size_id),
         quantity: toNumberOrValue(size.quantity ?? 0),
         price: toNumberOrValue(size.price ?? 0),
       })),

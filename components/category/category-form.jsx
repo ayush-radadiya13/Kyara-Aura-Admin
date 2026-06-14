@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { Loader2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { categorySchema } from "@/validations/category-validation";
 import { uploadMediaFile } from "@/services/media-service";
 import { toast } from "sonner";
@@ -21,6 +22,8 @@ const defaultValues = {
   image: "",
 };
 
+const MAX_CATEGORY_IMAGE_SIZE = 5 * 1024 * 1024;
+
 export function CategoryForm({
   mode = "create",
   onSubmit,
@@ -32,8 +35,10 @@ export function CategoryForm({
     resolver: zodResolver(categorySchema),
     defaultValues,
   });
-  const [previewImage, setPreviewImage] = useState(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const watchedName = useWatch({ control: form.control, name: "name" });
+  const imageValue = useWatch({ control: form.control, name: "image" });
+  const isActive = useWatch({ control: form.control, name: "is_active" });
 
   useEffect(() => {
     if (initialValues) {
@@ -46,19 +51,11 @@ export function CategoryForm({
         slug: initialValues.slug || "",
         image: imageUrl,
       });
-      setPreviewImage(
-        imageUrl
-          ? { preview: imageUrl, name: "Category image", isExisting: true }
-          : null
-      );
       return;
     }
     form.reset(defaultValues);
-    setPreviewImage(null);
   }, [initialValues, form]);
 
-  const watchedName = form.watch("name");
-  const currentSlug = form.watch("slug");
   const slugEditedManually = Boolean(form.formState.dirtyFields.slug);
 
   useEffect(() => {
@@ -74,31 +71,28 @@ export function CategoryForm({
     if (mode === "create" && !slugEditedManually) {
       form.setValue("slug", generated, { shouldValidate: true, shouldDirty: false });
     }
-  }, [watchedName, currentSlug, mode, form, slugEditedManually]);
+  }, [watchedName, mode, form, slugEditedManually]);
 
   const handleImageUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      alert("Image must be 2MB or smaller.");
+    if (!file.type?.startsWith("image/")) {
+      toast.error("Only image files are allowed.");
       event.target.value = "";
       return;
     }
 
-    if (previewImage?.preview?.startsWith("blob:")) {
-      URL.revokeObjectURL(previewImage.preview);
+    if (file.size > MAX_CATEGORY_IMAGE_SIZE) {
+      toast.error("Image must be 5 MB or smaller.");
+      event.target.value = "";
+      return;
     }
 
     setIsUploadingImage(true);
     try {
       const imageUrl = await uploadMediaFile(file, "categories");
 
-      setPreviewImage({
-        preview: imageUrl,
-        name: file.name,
-        isExisting: false,
-      });
       form.setValue("image", imageUrl, {
         shouldValidate: true,
         shouldDirty: true,
@@ -112,11 +106,6 @@ export function CategoryForm({
   };
 
   const removeImage = () => {
-    if (previewImage?.preview?.startsWith("blob:")) {
-      URL.revokeObjectURL(previewImage.preview);
-    }
-
-    setPreviewImage(null);
     form.setValue("image", "", {
       shouldValidate: true,
       shouldDirty: true,
@@ -126,38 +115,10 @@ export function CategoryForm({
   const submitHandler = form.handleSubmit(onSubmit);
 
   return (
-    <form onSubmit={submitHandler} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="name">Category Name</Label>
-        <Input id="name" placeholder="Enter a category name" {...form.register("name")} />
-        {form.formState.errors.name && (
-          <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="slug">Slug</Label>
-        <Input id="slug" placeholder="Enter a slug" {...form.register("slug")} />
-        {form.formState.errors.slug && (
-          <p className="text-sm text-destructive">{form.formState.errors.slug.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
-        <Input
-          id="description"
-          placeholder="Enter a Description"
-          {...form.register("description")}
-        />
-        {form.formState.errors.description && (
-          <p className="text-sm text-destructive">{form.formState.errors.description.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label>Category Image</Label>
-        <div className="rounded-lg border-2 border-dashed border-gray-300 p-4">
+    <form onSubmit={submitHandler} className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+        <div className="space-y-2">
+          <Label>Category Image</Label>
           <input
             type="file"
             accept="image/*"
@@ -168,67 +129,123 @@ export function CategoryForm({
           />
           <label
             htmlFor="category-image-upload"
-            className={`flex flex-col items-center justify-center ${
-              isUploadingImage ? "cursor-not-allowed" : "cursor-pointer"
+            className={`group relative flex h-[185px] w-full items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-muted/30 transition-colors ${
+              isUploadingImage
+                ? "cursor-not-allowed opacity-70"
+                : "cursor-pointer hover:border-primary/60 hover:bg-muted/50"
             }`}
+            aria-label="Upload category image"
           >
-            {isUploadingImage ? (
-              <Loader2 className="mb-2 h-8 w-8 animate-spin text-gray-400" />
+            {imageValue ? (
+              <>
+                <Image
+                  src={imageValue}
+                  alt="Category image"
+                  fill
+                  sizes="280px"
+                  unoptimized
+                  className="object-cover"
+                />
+                <span className="absolute right-3 bottom-3 flex size-10 items-center justify-center rounded-full bg-white/95 text-foreground shadow-md ring-1 ring-border transition-colors group-hover:text-primary">
+                  {isUploadingImage ? (
+                    <Loader2 className="size-5 animate-spin" />
+                  ) : (
+                    <Upload className="size-5" />
+                  )}
+                </span>
+                {isUploadingImage ? (
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+                    <Loader2 className="size-7 animate-spin text-white" />
+                  </span>
+                ) : null}
+              </>
             ) : (
-              <Upload className="mb-2 h-8 w-8 text-gray-400" />
+              <span className="flex flex-col items-center justify-center px-4 text-center">
+                {isUploadingImage ? (
+                  <Loader2 className="mb-2 size-8 animate-spin text-gray-400" />
+                ) : (
+                  <Upload className="mb-2 size-8 text-gray-400" />
+                )}
+                <span className="text-sm text-gray-600">
+                  {isUploadingImage ? "Uploading image..." : "Click to upload image"}
+                </span>
+                <span className="text-xs text-gray-500">Max 5 MB</span>
+              </span>
             )}
-            <span className="text-sm text-gray-600">
-              {isUploadingImage ? "Uploading image..." : "Click to upload image"}
-            </span>
-            <span className="text-xs text-gray-500">Max 2MB</span>
           </label>
+          {imageValue && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={removeImage}
+              disabled={loading || isUploadingImage}
+              className="border-border bg-white text-foreground hover:bg-white"
+            >
+              <X className="mr-2 size-4" />
+              Remove image
+            </Button>
+          )}
+          {form.formState.errors.image && (
+            <p className="text-sm text-destructive">{form.formState.errors.image.message}</p>
+          )}
         </div>
 
-        {previewImage && (
-          <div className="mt-2 w-28">
-            <div className="group relative">
-              <Image
-                src={previewImage.preview}
-                alt={previewImage.name || "Category image"}
-                width={112}
-                height={80}
-                unoptimized
-                className="h-20 w-full rounded border object-cover"
+        <div className="space-y-5">
+          <div>
+            <div className="ml-auto flex w-full items-center justify-between gap-4 sm:w-fit">
+              <Label htmlFor="is_active">Active category</Label>
+              <Switch
+                id="is_active"
+                checked={isActive}
+                onCheckedChange={(checked) =>
+                  form.setValue("is_active", checked, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
               />
-              <button
-                type="button"
-                onClick={removeImage}
-                className="absolute -top-2 -right-2 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
-              >
-                <X className="h-3 w-3" />
-              </button>
+            </div>
+            {form.formState.errors.is_active && (
+              <p className="mt-2 text-sm text-destructive">
+                {form.formState.errors.is_active.message}
+              </p>
+            )}
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="name">Category Name</Label>
+              <Input id="name" placeholder="Enter a category name" {...form.register("name")} />
+              {form.formState.errors.name && (
+                <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="slug">Slug</Label>
+              <Input id="slug" placeholder="Enter a slug" {...form.register("slug")} />
+              {form.formState.errors.slug && (
+                <p className="text-sm text-destructive">{form.formState.errors.slug.message}</p>
+              )}
             </div>
           </div>
-        )}
-        {form.formState.errors.image && (
-          <p className="text-sm text-destructive">{form.formState.errors.image.message}</p>
-        )}
-      </div>
 
-      <div className="flex items-center justify-between gap-4">
-        <Label htmlFor="is_active">Active category</Label>
-        <Switch
-          id="is_active"
-          checked={form.watch("is_active")}
-          onCheckedChange={(checked) =>
-            form.setValue("is_active", checked, {
-              shouldDirty: true,
-              shouldValidate: true,
-            })
-          }
-        />
-      </div>
-      {form.formState.errors.is_active && (
-        <p className="text-sm text-destructive">{form.formState.errors.is_active.message}</p>
-      )}
-
-      <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-        Slug is auto-generated from name for new categories, and can be edited manually.
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              placeholder="Enter a description"
+              className="min-h-[96px] resize-none"
+              {...form.register("description")}
+            />
+            {form.formState.errors.description && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.description.message}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="flex justify-end gap-2 pt-2">

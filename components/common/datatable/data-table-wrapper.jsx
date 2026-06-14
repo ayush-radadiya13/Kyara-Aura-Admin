@@ -72,7 +72,11 @@ export function DataTableWrapper({
       )}
 
       <div className="mt-4 flex flex-wrap items-center gap-3 px-5">
-        <SearchInput debounce={550} onSearchAction={onSearchAction} />
+        <SearchInput
+          value={search}
+          debounce={550}
+          onSearchAction={onSearchAction}
+        />
       </div>
 
       <div className="p-4">

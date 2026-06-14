@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -9,12 +9,26 @@ const SEARCH_INPUT_WIDTH = "w-[455px]";
 
 export function SearchInput({
   placeholder = "",
+  value: controlledValue,
   onSearchAction,
   className = "",
   debounce = 0,
 }) {
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(controlledValue ?? "");
   const debounceRef = useRef(null);
+  const lastControlledValueRef = useRef(controlledValue);
+
+  useEffect(() => {
+    if (
+      controlledValue !== undefined &&
+      controlledValue !== lastControlledValueRef.current
+    ) {
+      lastControlledValueRef.current = controlledValue;
+      const timeoutId = setTimeout(() => setValue(controlledValue), 0);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [controlledValue]);
 
   const handleChange = (e) => {
     const val = e.target.value;
@@ -49,7 +63,7 @@ export function SearchInput({
           onKeyDown={(e) => {
             if (e.key === "Enter") triggerSearch();
           }}
-          className="h-10 w-full rounded-none bg-white pl-2 pr-7 text-sm"
+          className="h-[35px] w-full rounded-none bg-white pl-2 pr-7 text-sm"
         />
 
         {value && (

@@ -4,12 +4,58 @@ import { Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
+function formatNumber(value) {
+  if (value === undefined || value === null || value === "") return "-";
+
+  const numberValue = Number(value);
+  if (Number.isNaN(numberValue)) return value;
+
+  return numberValue.toLocaleString("en-IN", {
+    maximumFractionDigits: 2,
+  });
+}
+
+function formatDiscount(value) {
+  if (value === undefined || value === null || value === "") return "-";
+
+  const numberValue = Number(value);
+  if (Number.isNaN(numberValue)) return `${value}%`;
+
+  return `${numberValue.toLocaleString("en-IN", {
+    maximumFractionDigits: 2,
+  })}%`;
+}
+
 export function getProductColumns(loading) {
   return (_sortAttr, _sort, _onSort, onDelete, onEdit) => [
     {
+      accessorKey: "id",
+      header: "ID",
+      meta: { width: "70px" },
+      cell: ({ row }) => <span>{row.getValue("id") || "-"}</span>,
+    },
+    {
+      id: "image",
+      header: "Image",
+      meta: { width: "150px" },
+      cell: ({ row }) => {
+        const image = row.original.images?.[0];
+
+        return image ? (
+          <img
+            src={image}
+            alt={row.original.name ? `${row.original.name} thumbnail` : "Product thumbnail"}
+            className="size-14 rounded-md border object-cover"
+          />
+        ) : (
+          <span>-</span>
+        );
+      },
+    },
+    {
       accessorKey: "name",
       header: "Name",
-      meta: { width: "20%" },
+      meta: { width: "230px" },
       cell: ({ row }) => (
         <span className="font-medium">{row.getValue("name")}</span>
       ),
@@ -17,48 +63,43 @@ export function getProductColumns(loading) {
     {
       accessorKey: "slug",
       header: "Slug",
-      meta: { width: "15%" },
+      meta: { width: "230px" },
       cell: ({ row }) => (
         <span>{row.getValue("slug") || "-"}</span>
       ),
     },
     {
-      accessorKey: "price",
-      header: "Price",
+      accessorKey: "discount_percentage",
+      header: "Discount",
       meta: { width: "100px" },
-      cell: ({ row }) => (
-        <span>${parseFloat(row.getValue("price") || 0).toFixed(2)}</span>
-      ),
+      cell: ({ row }) => <span>{formatDiscount(row.getValue("discount_percentage"))}</span>,
     },
     {
-      accessorKey: "sale_price",
-      header: "Sale Price",
-      meta: { width: "100px" },
+      id: "variants",
+      header: "Variants",
+      meta: { width: "260px" },
       cell: ({ row }) => {
-        const salePrice = row.getValue("sale_price");
-        return salePrice ? <span className="text-green-600">${parseFloat(salePrice).toFixed(2)}</span> : <span>-</span>;
-      },
-    },
-    {
-      accessorKey: "stock_quantity",
-      header: "Stock",
-      meta: { width: "80px" },
-      cell: ({ row }) => {
-        const stock = row.getValue("stock_quantity");
-        const trackStock = row.original.track_stock;
-        if (!trackStock) return <span>-</span>;
+        const variants = row.original.sizes || [];
+        if (!variants.length) return <span>-</span>;
+
         return (
-          <Badge
-            className={
-              stock > 10
-                ? "bg-green-100 text-green-700 hover:bg-green-100"
-                : stock > 0
-                ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-100"
-                : "bg-red-100 text-red-700 hover:bg-red-100"
-            }
-          >
-            {stock}
-          </Badge>
+          <div className="space-y-1 text-xs">
+            <div className="grid grid-cols-[1fr_56px_70px] gap-2 font-semibold text-muted-foreground">
+              <span>Size</span>
+              <span>Qty</span>
+              <span>Price</span>
+            </div>
+            {variants.map((variant, index) => (
+              <div
+                key={`${variant.size_text || "variant"}-${index}`}
+                className="grid grid-cols-[1fr_56px_70px] gap-2"
+              >
+                <span>{variant.size_text || "-"}</span>
+                <span>{formatNumber(variant.quantity)}</span>
+                <span>{formatNumber(variant.price)}</span>
+              </div>
+            ))}
+          </div>
         );
       },
     },

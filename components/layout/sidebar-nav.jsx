@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   ChevronDown,
   ChevronRight,
@@ -20,10 +20,16 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  useSidebar,
+} from "@/components/ui/sidebar";
 
 const links = {
   dashboard: "/dashboard",
@@ -32,219 +38,244 @@ const links = {
   customers: "/customers",
   orders: "/orders",
   settings: "/settings",
+  settingsWeb: "/settings/web-settings",
   settingsBanner: "/settings/banner",
+  settingsSizes: "/settings/sizes",
 };
+
+const orderTypeLinks = [
+  { label: "Cash on Delivery", href: "/orders?type=cod", type: "cod" },
+  { label: "Online Payment", href: "/orders?type=online", type: "online" },
+];
 
 function isRouteActive(pathname, href) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function IconCircle({ className, children }) {
-  return (
-    <span
-      className={cn(
-        "flex size-7 shrink-0 items-center justify-center rounded-full [&_svg]:size-4",
-        className
-      )}
-    >
-      {children}
-    </span>
-  );
-}
-
 export function SidebarNav({
-  collapsed,
   enableTooltips,
   onNavigate,
   className,
 }) {
+  const { isMobile, state } = useSidebar();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const orderType = searchParams.get("type");
+  const collapsed = !isMobile && state === "collapsed";
+  const ordersActive = isRouteActive(pathname, links.orders);
   const settingsActive = isRouteActive(pathname, links.settings);
+  const [ordersOpen, setOrdersOpen] = React.useState(ordersActive);
   const [settingsOpen, setSettingsOpen] = React.useState(settingsActive);
+  const effectiveOrdersOpen = ordersActive || ordersOpen;
   const effectiveSettingsOpen = settingsActive || settingsOpen;
 
-  function withTooltip(label, node) {
-    if (!enableTooltips || !collapsed) return node;
-    return (
-      <Tooltip>
-        <TooltipTrigger render={node} />
-        <TooltipContent side="inline-end">{label}</TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  const topLinkClass = (active) =>
+  const topButtonClass = (active) =>
     cn(
-      "flex w-full min-w-0 items-center gap-3 rounded-md px-2 py-2 text-sm font-medium transition-colors outline-none",
+      "min-w-0 justify-start gap-2 rounded-md text-sm transition-[background-color,color,box-shadow,transform]",
+      "hover:translate-x-0.5 data-active:shadow-sm",
+      "group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2!",
       active
-        ? "bg-primary/80 text-white"
-        : "text-neutral-900 hover:bg-neutral-100/90 dark:text-sidebar-foreground dark:hover:bg-sidebar-accent/80",
+        ? "bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground"
+        : "text-sidebar-foreground/85 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground",
       collapsed
-        ? "md:h-10 md:w-10 md:justify-center md:rounded-full md:p-0"
-        : "w-full min-w-0 rounded-md px-2 py-2"
-    );
-
-  const topIconWrapClass = (active) =>
-    cn(
-      active
-        ? "bg-white text-neutral-900 shadow-sm"
-        : "bg-neutral-100 text-neutral-600 dark:bg-sidebar-accent dark:text-sidebar-foreground/80"
+        ? "md:size-8 md:justify-center md:p-2"
+        : "h-8 w-full px-2"
     );
 
   const subLinkClass = (active) =>
     cn(
-      "relative-ms-px flex items-center gap-2.5 border-s-2 border-transparent py-2 pe-2 ps-3 text-sm transition-colors",
+      "relative -ms-px h-7 justify-start gap-2 rounded-md border-s-2 border-transparent bg-transparent px-2 text-sm transition-colors hover:bg-sidebar-accent/70",
       active
-        ? "border-primary font-semibold text-neutral-900 dark:text-sidebar-foreground"
-        : "font-medium text-neutral-600 hover:text-neutral-900 dark:text-muted-foreground dark:hover:text-sidebar-foreground",
-      collapsed && "md:hidden"
+        ? "border-sidebar-primary bg-sidebar-accent text-sidebar-accent-foreground hover:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground"
+        : "font-medium text-sidebar-foreground/70 hover:text-sidebar-accent-foreground"
     );
 
   return (
-    <nav
+    <SidebarGroup
       className={cn(
-        "flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-3 pb-2",
+        "min-h-0 flex-1 px-2 py-2",
         className
       )}
       aria-label="Admin"
     >
-      <p
+      <SidebarGroupLabel
         className={cn(
-          "px-3 pb-2 pt-1 text-xs font-medium text-muted-foreground",
-          collapsed && "md:sr-only"
+          "text-sidebar-foreground/70",
+          collapsed && "sr-only"
         )}
       >
-        Home
-      </p>
+        Navigation
+      </SidebarGroupLabel>
 
-      {withTooltip(
-        "Dashboard",
-        <Link
-          href={links.dashboard}
-          className={topLinkClass(isRouteActive(pathname, links.dashboard))}
-          onClick={onNavigate}
-        >
-          <IconCircle
-            className={topIconWrapClass(isRouteActive(pathname, links.dashboard))}
+      <SidebarMenu className="gap-1">
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            render={<Link href={links.dashboard} onClick={onNavigate} />}
+            isActive={isRouteActive(pathname, links.dashboard)}
+            tooltip={enableTooltips ? "Dashboard" : undefined}
+            className={topButtonClass(isRouteActive(pathname, links.dashboard))}
           >
             <LayoutDashboard aria-hidden />
-          </IconCircle>
-          <span className={cn("truncate", collapsed && "md:sr-only")}>
-            Dashboard
-          </span>
-        </Link>
-      )}
+            <span className={cn("truncate", collapsed && "sr-only")}>
+              Dashboard
+            </span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
 
-      {withTooltip(
-        "Orders",
-        <Link
-          href={links.orders}
-          className={topLinkClass(isRouteActive(pathname, links.orders))}
-          onClick={onNavigate}
-        >
-          <IconCircle
-            className={topIconWrapClass(isRouteActive(pathname, links.orders))}
-          >
-            <ShoppingBag aria-hidden />
-          </IconCircle>
-          <span className={cn("truncate", collapsed && "md:sr-only")}>
-            Orders
-          </span>
-        </Link>
-      )}
+        <SidebarMenuItem>
+          {collapsed ? (
+            <SidebarMenuButton
+              render={<Link href={links.orders} onClick={onNavigate} />}
+              isActive={ordersActive}
+              tooltip={enableTooltips ? "Orders" : undefined}
+              className={topButtonClass(ordersActive)}
+            >
+              <ShoppingBag aria-hidden />
+              <span className="sr-only">Orders</span>
+            </SidebarMenuButton>
+          ) : (
+            <Collapsible open={effectiveOrdersOpen} onOpenChange={setOrdersOpen}>
+              <CollapsibleTrigger
+                render={
+                  <SidebarMenuButton
+                    isActive={ordersActive}
+                    className={topButtonClass(ordersActive)}
+                  >
+                    <ShoppingBag aria-hidden />
+                    <span className="truncate">Orders</span>
+                    {effectiveOrdersOpen ? (
+                      <ChevronDown className="ms-auto size-4" aria-hidden />
+                    ) : (
+                      <ChevronRight className="ms-auto size-4" aria-hidden />
+                    )}
+                  </SidebarMenuButton>
+                }
+              />
+              <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+                <SidebarMenuSub className="mx-3.5 mt-1 gap-1 border-sidebar-border px-2.5 py-0.5">
+                  {orderTypeLinks.map((item) => (
+                    <SidebarMenuSubItem key={item.type}>
+                      <SidebarMenuSubButton
+                        render={<Link href={item.href} onClick={onNavigate} />}
+                        isActive={ordersActive && orderType === item.type}
+                        className={subLinkClass(ordersActive && orderType === item.type)}
+                      >
+                        <span>{item.label}</span>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  ))}
+                </SidebarMenuSub>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+        </SidebarMenuItem>
 
-      {withTooltip(
-        "Products",
-        <Link
-          href={links.products}
-          className={topLinkClass(isRouteActive(pathname, links.products))}
-          onClick={onNavigate}
-        >
-          <IconCircle
-            className={topIconWrapClass(isRouteActive(pathname, links.products))}
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            render={<Link href={links.products} onClick={onNavigate} />}
+            isActive={isRouteActive(pathname, links.products)}
+            tooltip={enableTooltips ? "Products" : undefined}
+            className={topButtonClass(isRouteActive(pathname, links.products))}
           >
             <Package aria-hidden />
-          </IconCircle>
-          <span className={cn("truncate", collapsed && "md:sr-only")}>
-            Products
-          </span>
-        </Link>
-      )}
+            <span className={cn("truncate", collapsed && "sr-only")}>
+              Products
+            </span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
 
-      {withTooltip(
-        "Customers",
-        <Link
-          href={links.customers}
-          className={topLinkClass(isRouteActive(pathname, links.customers))}
-          onClick={onNavigate}
-        >
-          <IconCircle
-            className={topIconWrapClass(isRouteActive(pathname, links.customers))}
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            render={<Link href={links.customers} onClick={onNavigate} />}
+            isActive={isRouteActive(pathname, links.customers)}
+            tooltip={enableTooltips ? "Customers" : undefined}
+            className={topButtonClass(isRouteActive(pathname, links.customers))}
           >
             <Users aria-hidden />
-          </IconCircle>
-          <span className={cn("truncate", collapsed && "md:sr-only")}>
-            Customers
-          </span>
-        </Link>
-      )}
+            <span className={cn("truncate", collapsed && "sr-only")}>
+              Customers
+            </span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
 
-      {withTooltip(
-        "Category",
-        <Link
-          href={links.category}
-          className={topLinkClass(isRouteActive(pathname, links.category))}
-          onClick={onNavigate}
-        >
-          <IconCircle
-            className={topIconWrapClass(isRouteActive(pathname, links.category))}
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            render={<Link href={links.category} onClick={onNavigate} />}
+            isActive={isRouteActive(pathname, links.category)}
+            tooltip={enableTooltips ? "Category" : undefined}
+            className={topButtonClass(isRouteActive(pathname, links.category))}
           >
             <Package aria-hidden />
-          </IconCircle>
-          <span className={cn("truncate", collapsed && "md:sr-only")}>
-            Category
-          </span>
-        </Link>
-      )}
+            <span className={cn("truncate", collapsed && "sr-only")}>
+              Category
+            </span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
 
-      {collapsed ? (
-        withTooltip(
-          "Settings",
-          <Link
-            href={links.settings}
-            className={topLinkClass(settingsActive)}
-            onClick={onNavigate}
-          >
-            <IconCircle className={topIconWrapClass(settingsActive)}>
-              <Settings aria-hidden />
-            </IconCircle>
-            <span className="md:sr-only">Settings</span>
-          </Link>
-        )
-      ) : (
-        <Collapsible open={effectiveSettingsOpen} onOpenChange={setSettingsOpen}>
-          <CollapsibleTrigger className={topLinkClass(settingsActive)}>
-            <IconCircle className={topIconWrapClass(settingsActive)}>
-              <Settings aria-hidden />
-            </IconCircle>
-            <span className="truncate">Settings</span>
-            {effectiveSettingsOpen ? (
-              <ChevronDown className="ms-auto size-4" aria-hidden />
-            ) : (
-              <ChevronRight className="ms-auto size-4" aria-hidden />
-            )}
-          </CollapsibleTrigger>
-          <CollapsibleContent className="ms-6 mt-1 border-s border-neutral-200 ps-2 dark:border-sidebar-border">
-            <Link
-              href={links.settingsBanner}
-              className={subLinkClass(pathname === links.settingsBanner)}
-              onClick={onNavigate}
+        <SidebarMenuItem>
+          {collapsed ? (
+            <SidebarMenuButton
+              render={<Link href={links.settings} onClick={onNavigate} />}
+              isActive={settingsActive}
+              tooltip={enableTooltips ? "Settings" : undefined}
+              className={topButtonClass(settingsActive)}
             >
-              Banner
-            </Link>
-          </CollapsibleContent>
-        </Collapsible>
-      )}
-    </nav>
+              <Settings aria-hidden />
+              <span className="sr-only">Settings</span>
+            </SidebarMenuButton>
+          ) : (
+            <Collapsible open={effectiveSettingsOpen} onOpenChange={setSettingsOpen}>
+              <CollapsibleTrigger
+                render={
+                  <SidebarMenuButton
+                    isActive={settingsActive}
+                    className={topButtonClass(settingsActive)}
+                  >
+                    <Settings aria-hidden />
+                    <span className="truncate">Settings</span>
+                    {effectiveSettingsOpen ? (
+                      <ChevronDown className="ms-auto size-4" aria-hidden />
+                    ) : (
+                      <ChevronRight className="ms-auto size-4" aria-hidden />
+                    )}
+                  </SidebarMenuButton>
+                }
+              />
+              <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+                <SidebarMenuSub className="mx-3.5 mt-1 gap-1 border-sidebar-border px-2.5 py-0.5">
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton
+                      render={<Link href={links.settingsWeb} onClick={onNavigate} />}
+                      isActive={pathname === links.settingsWeb}
+                      className={subLinkClass(pathname === links.settingsWeb)}
+                    >
+                      <span>Web Settings</span>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton
+                      render={<Link href={links.settingsBanner} onClick={onNavigate} />}
+                      isActive={pathname === links.settingsBanner}
+                      className={subLinkClass(pathname === links.settingsBanner)}
+                    >
+                      <span>Banner</span>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton
+                      render={<Link href={links.settingsSizes} onClick={onNavigate} />}
+                      isActive={pathname === links.settingsSizes}
+                      className={subLinkClass(pathname === links.settingsSizes)}
+                    >
+                      <span>Sizes</span>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                </SidebarMenuSub>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+        </SidebarMenuItem>
+      </SidebarMenu>
+    </SidebarGroup>
   );
 }

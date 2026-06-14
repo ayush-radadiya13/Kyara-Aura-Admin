@@ -24,7 +24,7 @@ function SelectTrigger({ className, size = "default", children, ...props }) {
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        "flex h-10 w-fit items-center justify-between gap-2 whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-muted-foreground dark:bg-input/30 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "flex h-[35px] w-fit items-center justify-between gap-2 whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-muted-foreground dark:bg-input/30 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}
@@ -61,7 +61,16 @@ function SelectScrollDownButton({ className, ...props }) {
   );
 }
 
-function SelectContent({ className, children, position = "item-aligned", ...props }) {
+function SelectContent({
+  className,
+  children,
+  position = "popper",
+  side = "bottom",
+  align = "start",
+  sideOffset = 4,
+  avoidCollisions = false,
+  ...props
+}) {
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
@@ -73,6 +82,10 @@ function SelectContent({ className, children, position = "item-aligned", ...prop
           className
         )}
         position={position}
+        side={side}
+        align={align}
+        sideOffset={sideOffset}
+        avoidCollisions={avoidCollisions}
         {...props}
       >
         <SelectScrollUpButton />

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,7 @@ const defaultValues = {
   short_description: "",
   category_id: "",
   discount_percentage: 0,
+  weight_grams: "",
   brand: "",
   base_material: "",
   plating: "",
@@ -45,6 +46,7 @@ const defaultValues = {
   package_contents: "",
   is_active: true,
   track_stock: false,
+  is_collection: false,
   images: [],
   sizes: [],
 };
@@ -182,6 +184,27 @@ function resolveInitialIdealFor(initialValues) {
   return option ? option.value : stringValue;
 }
 
+function resolveInitialSizeId(size, sizeOptions) {
+  const sizeId =
+    size?.size_id ??
+    size?.sizeId ??
+    size?.size?.id ??
+    size?.size?._id ??
+    "";
+
+  if (sizeId !== undefined && sizeId !== null && sizeId !== "") {
+    return String(sizeId);
+  }
+
+  const sizeName = size?.size_text ?? size?.size?.name ?? size?.name ?? "";
+  const normalizedSizeName = normalizeCategoryLabel(sizeName);
+  const option = sizeOptions.find(
+    (sizeOption) => normalizeCategoryLabel(sizeOption.label) === normalizedSizeName
+  );
+
+  return option ? String(option.value) : "";
+}
+
 export function ProductForm({
   mode = "create",
   onSubmit,
@@ -189,19 +212,35 @@ export function ProductForm({
   loading,
   initialValues,
   categoryOptions = [],
+  sizeOptions = [],
 }) {
   const form = useForm({
     resolver: zodResolver(productSchema),
     defaultValues,
   });
+  const watchedCategoryId = useWatch({ control: form.control, name: "category_id" });
+  const watchedIdealFor = useWatch({ control: form.control, name: "ideal_for" });
+  const watchedIsActive = useWatch({ control: form.control, name: "is_active" });
+  const watchedTrackStock = useWatch({ control: form.control, name: "track_stock" });
+  const watchedIsCollection = useWatch({ control: form.control, name: "is_collection" });
+  const watchedName = useWatch({ control: form.control, name: "name" });
+  const watchedSizes = useWatch({ control: form.control, name: "sizes" });
+  const currentSlug = useWatch({ control: form.control, name: "slug" });
 
   const [previewImages, setPreviewImages] = useState([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
-  const selectedCategoryId = String(form.watch("category_id") || "");
-  const selectedIdealFor = String(form.watch("ideal_for") || "");
+  const selectedCategoryId = String(watchedCategoryId || "");
+  const selectedIdealFor = String(watchedIdealFor || "");
+  const isActive = Boolean(watchedIsActive);
+  const trackStock = Boolean(watchedTrackStock);
+  const isCollection = Boolean(watchedIsCollection);
   const normalizedCategoryOptions = useMemo(
     () => normalizeSelectOptions(categoryOptions),
     [categoryOptions]
+  );
+  const normalizedSizeOptions = useMemo(
+    () => normalizeSelectOptions(sizeOptions),
+    [sizeOptions]
   );
   const categorySelectOptions = useMemo(() => {
     if (
@@ -230,6 +269,20 @@ export function ProductForm({
     ];
   }, [selectedIdealFor]);
 
+  const getSizeSelectOptions = (selectedSize) => {
+    if (
+      !selectedSize ||
+      normalizedSizeOptions.some((option) => option.value === selectedSize)
+    ) {
+      return normalizedSizeOptions;
+    }
+
+    return [
+      { label: selectedSize, value: selectedSize },
+      ...normalizedSizeOptions,
+    ];
+  };
+
   const { fields: sizeFields, append: appendSize, remove: removeSize } = useFieldArray({
     control: form.control,
     name: "sizes",
@@ -256,6 +309,7 @@ export function ProductForm({
       short_description: initialValues.short_description || "",
       category_id: categoryId,
       discount_percentage: initialValues.discount_percentage ?? 0,
+      weight_grams: initialValues.weight_grams ?? "",
       brand: initialValues.brand || "",
       base_material: initialValues.base_material || "",
       plating: initialValues.plating || "",
@@ -266,10 +320,11 @@ export function ProductForm({
       package_contents: initialValues.package_contents || "",
       is_active: Boolean(initialValues.is_active),
       track_stock: Boolean(initialValues.track_stock),
+      is_collection: Boolean(initialValues.is_collection ?? initialValues.add_collection),
       images: initialValues.images || initialValues.image || [],
       sizes:
           initialValues.sizes?.map((size) => ({
-            size_text: size.size_text ?? "",
+            size_id: resolveInitialSizeId(size, normalizedSizeOptions),
             quantity: size.quantity ?? "",
             price: size.price ?? "",
           })) || [],
@@ -288,9 +343,12 @@ export function ProductForm({
         .map(normalizePreviewImage)
         .filter(Boolean);
 
-    setPreviewImages(previewImages);
+    const previewTimer = setTimeout(() => {
+      setPreviewImages(previewImages);
+    }, 0);
 
-  }, [initialValues]);
+    return () => clearTimeout(previewTimer);
+  }, [initialValues, form, normalizedSizeOptions]);
 
 
   useEffect(() => {
@@ -307,8 +365,6 @@ export function ProductForm({
     }
   }, [normalizedCategoryOptions, initialValues, form]);
 
-  const watchedName = form.watch("name");
-  const currentSlug = form.watch("slug");
   const slugEditedManually = Boolean(form.formState.dirtyFields.slug);
 
   useEffect(() => {
@@ -328,19 +384,20 @@ export function ProductForm({
 
   const handleImageUpload = async (event) => {
     const files = Array.from(event.target.files);
-    const validFiles = files.filter(file => file.size <= 2 * 1024 * 1024); // 2MB limit
-    
-    if (validFiles.length !== files.length) {
-      alert("Some files exceed the 2MB limit and were not added.");
-    }
-
-    if (previewImages.length + validFiles.length > 5) {
-      alert("Maximum 5 images allowed.");
+    if (!files.length) {
       event.target.value = "";
       return;
     }
 
-    if (!validFiles.length) {
+    if (previewImages.length + files.length > 5) {
+      toast.error("Maximum 5 images allowed per product.");
+      event.target.value = "";
+      return;
+    }
+
+    const oversizedFile = files.find((file) => file.size > 2 * 1024 * 1024);
+    if (oversizedFile) {
+      toast.error(`${oversizedFile.name} exceeds the 2 MB image size limit.`);
       event.target.value = "";
       return;
     }
@@ -348,7 +405,7 @@ export function ProductForm({
     setIsUploadingImages(true);
     try {
       const uploadedImages = await Promise.all(
-        validFiles.map(async (file) => {
+        files.map(async (file) => {
           const url = await uploadMediaFile(file, "products");
 
           return {
@@ -416,239 +473,212 @@ export function ProductForm({
     </div>
   );
 
-  return (
-    <form onSubmit={submitHandler} className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {renderTextInput({
-          name: "name",
-          label: "Product Name",
-          placeholder: "Enter product name",
-        })}
-        {renderTextInput({
-          name: "slug",
-          label: "Slug",
-          placeholder: "Enter slug",
-        })}
-      </div>
+  const renderSwitchField = (name, label, checked) => (
+    <div className="flex items-center justify-between gap-4 rounded-lg border border-border p-3">
+      <Label htmlFor={name}>{label}</Label>
+      <Switch
+        id={name}
+        checked={checked}
+        onCheckedChange={(checked) =>
+          form.setValue(name, checked, {
+            shouldDirty: true,
+            shouldValidate: true,
+          })
+        }
+      />
+    </div>
+  );
 
-      <div className="space-y-1.5">
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          placeholder="Enter product description"
-          rows={4}
-          {...form.register("description")}
+  const renderImageUpload = () => (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label>Product Images</Label>
+        <span className="text-xs text-muted-foreground">{imageCount}/5 uploaded</span>
+      </div>
+      <div
+        className={`flex h-[220px] w-full rounded-lg border-2 border-dashed p-4 ${
+          maxImagesReached ? "border-gray-200 bg-gray-50 opacity-60" : "border-gray-300"
+        }`}
+      >
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={handleImageUpload}
+          className="hidden"
+          id="image-upload"
+          disabled={maxImagesReached || isUploadingImages}
         />
-        {form.formState.errors.description && (
-          <p className="text-xs text-destructive">{form.formState.errors.description.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="short_description">Short Description</Label>
-        <Textarea
-          id="short_description"
-          placeholder="Enter short description"
-          rows={2}
-          {...form.register("short_description")}
-        />
-        {form.formState.errors.short_description && (
-          <p className="text-xs text-destructive">{form.formState.errors.short_description.message}</p>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <Label className="text-sm">Category</Label>
-          <Select
-              key={selectedCategoryId}
-              value={selectedCategoryId}
-              onValueChange={(value) => {
-                form.setValue("category_id", value, {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                });
-              }}
-          >
-            <SelectTrigger className={compactSelectClass}>
-              <SelectValue placeholder="Select Category" />
-            </SelectTrigger>
-
-            <SelectContent>
-              {categorySelectOptions.map((option) => (
-                  <SelectItem
-                      key={option.value}
-                      value={String(option.value)}
-                  >
-                    {option.label}
-                  </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {form.formState.errors.category_id && (
-            <p className="text-xs text-destructive">{form.formState.errors.category_id.message}</p>
+        <label
+          htmlFor="image-upload"
+          className={`flex h-full w-full flex-col items-center justify-center text-center ${
+            maxImagesReached || isUploadingImages ? "cursor-not-allowed" : "cursor-pointer"
+          }`}
+        >
+          {isUploadingImages ? (
+            <Loader2 className="mb-2 h-8 w-8 animate-spin text-gray-400" />
+          ) : (
+            <Upload className="mb-2 h-8 w-8 text-gray-400" />
           )}
-        </div>
-
-        {renderTextInput({
-          name: "discount_percentage",
-          label: "Discount Percentage",
-          placeholder: "0",
-          type: "number",
-          min: "0",
-          max: "100",
-        })}
+          <span className="text-sm text-gray-600">
+            {isUploadingImages
+              ? "Uploading images..."
+              : maxImagesReached
+                ? "Maximum images reached"
+                : "Click to upload images"}
+          </span>
+          <span className="text-xs text-gray-500">Max 5 files, 2MB each</span>
+        </label>
       </div>
 
-      <div className="rounded-lg border border-border bg-muted/20 p-4">
-        <h3 className="mb-4 text-sm font-semibold text-foreground">Product Details</h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {productDetailFields.map((field) => (
-            <div key={field.name}>{renderTextInput(field)}</div>
+      {previewImages.length > 0 && (
+        <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-5">
+          {previewImages.map((image, index) => (
+            <div key={`${image.name}-${index}`} className="group relative">
+              <img
+                src={image.preview || image}
+                alt={image.name || `Product image ${index + 1}`}
+                className="h-20 w-full rounded border object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => removeImage(index)}
+                className="absolute -top-2 -right-2 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
           ))}
+        </div>
+      )}
+      {form.formState.errors.images && (
+        <p className="text-sm text-destructive">{form.formState.errors.images.message}</p>
+      )}
+    </div>
+  );
 
-          <div className="space-y-1.5">
-            <Label className="text-sm">Ideal For</Label>
+  return (
+    <form onSubmit={submitHandler} className="space-y-4">
+      <div className="rounded-lg border border-border p-4">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
+          {renderImageUpload()}
+
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <div className="w-full sm:w-[220px]">
+                {renderSwitchField("is_active", "Active Product", isActive)}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {renderTextInput({
+                name: "name",
+                label: "Product Name",
+                placeholder: "Enter product name",
+              })}
+              {renderTextInput({
+                name: "slug",
+                label: "Slug",
+                placeholder: "Enter slug",
+              })}
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-1">
+              <div className="space-y-1.5">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Enter product description"
+                  rows={3}
+                  {...form.register("description")}
+                />
+                {form.formState.errors.description && (
+                  <p className="text-xs text-destructive">
+                    {form.formState.errors.description.message}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-border p-4">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+          <div className="space-y-1.5 lg:col-span-2">
+            <Label className="text-sm">Category</Label>
             <Select
-                key={selectedIdealFor}
-                value={selectedIdealFor}
+                key={selectedCategoryId}
+                value={selectedCategoryId}
                 onValueChange={(value) => {
-                  form.setValue("ideal_for", value, {
+                  form.setValue("category_id", value, {
                     shouldDirty: true,
                     shouldValidate: true,
                   });
                 }}
             >
               <SelectTrigger className={compactSelectClass}>
-                <SelectValue placeholder="Select Ideal For" />
+                <SelectValue placeholder="Select Category" />
               </SelectTrigger>
 
-              <SelectContent>
-                {idealForOptions.map((option) => (
+              <SelectContent
+                align="start"
+                avoidCollisions={false}
+                className="w-[var(--radix-select-trigger-width)]"
+                position="popper"
+                side="bottom"
+                sideOffset={4}
+              >
+                {categorySelectOptions.map((option) => (
                     <SelectItem
                         key={option.value}
-                        value={option.value}
+                        value={String(option.value)}
                     >
                       {option.label}
                     </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {renderFieldError("ideal_for")}
-          </div>
-
-          {renderTextInput({
-            name: "package_contents",
-            label: "Package Contents",
-            placeholder: "e.g. 1 Necklace, 1 Pair Earrings",
-          })}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="flex items-center justify-between gap-4 rounded-lg border border-border p-3">
-          <Label htmlFor="track_stock">Track Stock</Label>
-          <Switch
-            id="track_stock"
-            checked={form.watch("track_stock")}
-            onCheckedChange={(checked) =>
-              form.setValue("track_stock", checked, {
-                shouldDirty: true,
-                shouldValidate: true,
-              })
-            }
-          />
-        </div>
-
-        <div className="flex items-center justify-between gap-4 rounded-lg border border-border p-3">
-          <Label htmlFor="is_active">Active Product</Label>
-          <Switch
-            id="is_active"
-            checked={form.watch("is_active")}
-            onCheckedChange={(checked) =>
-              form.setValue("is_active", checked, {
-                shouldDirty: true,
-                shouldValidate: true,
-              })
-            }
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label>Product Images</Label>
-          <span className="text-xs text-muted-foreground">{imageCount}/5 uploaded</span>
-        </div>
-        <div
-          className={`rounded-lg border-2 border-dashed p-4 ${
-            maxImagesReached ? "border-gray-200 bg-gray-50 opacity-60" : "border-gray-300"
-          }`}
-        >
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleImageUpload}
-            className="hidden"
-            id="image-upload"
-            disabled={maxImagesReached || isUploadingImages}
-          />
-          <label
-            htmlFor="image-upload"
-            className={`flex flex-col items-center justify-center ${
-              maxImagesReached || isUploadingImages ? "cursor-not-allowed" : "cursor-pointer"
-            }`}
-          >
-            {isUploadingImages ? (
-              <Loader2 className="mb-2 h-8 w-8 animate-spin text-gray-400" />
-            ) : (
-              <Upload className="mb-2 h-8 w-8 text-gray-400" />
+            {form.formState.errors.category_id && (
+              <p className="text-xs text-destructive">{form.formState.errors.category_id.message}</p>
             )}
-            <span className="text-sm text-gray-600">
-              {isUploadingImages
-                ? "Uploading images..."
-                : maxImagesReached
-                  ? "Maximum images reached"
-                  : "Click to upload images"}
-            </span>
-            <span className="text-xs text-gray-500">Max 5 files, 2MB each</span>
-          </label>
-        </div>
-
-        {previewImages.length > 0 && (
-          <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-5">
-            {previewImages.map((image, index) => (
-              <div key={`${image.name}-${index}`} className="group relative">
-                <img
-                  src={image.preview || image}
-                  alt={image.name || `Product image ${index + 1}`}
-                  className="h-20 w-full rounded border object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeImage(index)}
-                  className="absolute -top-2 -right-2 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
           </div>
-        )}
-        {form.formState.errors.images && (
-          <p className="text-sm text-destructive">{form.formState.errors.images.message}</p>
-        )}
+
+          <div className="lg:col-span-2">
+            {renderTextInput({
+              name: "discount_percentage",
+              label: "Discount Percentage",
+              placeholder: "0",
+              type: "number",
+              min: "0",
+              max: "100",
+            })}
+          </div>
+
+          <div className="lg:col-span-2">
+            {renderTextInput({
+              name: "weight_grams",
+              label: "Weight (grams)",
+              placeholder: "Enter weight in grams",
+              type: "number",
+              min: "0",
+              step: "0.01",
+            })}
+          </div>
+
+          {renderSwitchField("track_stock", "Track Stock", trackStock)}
+          {renderSwitchField("is_collection", "Add Collection", isCollection)}
+        </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-3 rounded-lg border border-border p-4">
         <div className="flex items-center justify-between">
           <Label>Product Sizes</Label>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => appendSize({ size_text: "", quantity: "", price: "" })}
+            onClick={() => appendSize({ size_id: "", quantity: "", price: "" })}
             className="border-border bg-white text-foreground hover:bg-white"
           >
             <Plus className="mr-1 size-4" />
@@ -671,11 +701,35 @@ export function ProductForm({
                 {sizeFields.map((field, index) => (
                   <TableRow key={field.id}>
                     <TableCell>
-                      <Input
-                        placeholder="e.g. S"
-                        className={compactInputClass}
-                        {...form.register(`sizes.${index}.size_text`)}
-                      />
+                      <Select
+                        value={String(watchedSizes?.[index]?.size_id || "")}
+                        onValueChange={(value) => {
+                          form.setValue(`sizes.${index}.size_id`, value, {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          });
+                        }}
+                      >
+                        <SelectTrigger className={compactSelectClass}>
+                          <SelectValue placeholder="Select Size" />
+                        </SelectTrigger>
+                        <SelectContent
+                          align="start"
+                          avoidCollisions={false}
+                          className="w-[var(--radix-select-trigger-width)]"
+                          position="popper"
+                          side="bottom"
+                          sideOffset={4}
+                        >
+                          {getSizeSelectOptions(String(watchedSizes?.[index]?.size_id || "")).map(
+                            (option) => (
+                              <SelectItem key={option.value} value={String(option.value)}>
+                                {option.label}
+                              </SelectItem>
+                            )
+                          )}
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                     <TableCell>
                       <Input
@@ -726,8 +780,49 @@ export function ProductForm({
         )}
       </div>
 
-      <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-        Slug is auto-generated from name for new products, and can be edited manually.
+      <div className="rounded-lg border border-border bg-muted/20 p-4">
+        <h3 className="mb-4 text-sm font-semibold text-foreground">Product Details</h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {productDetailFields.map((field) => (
+            <div key={field.name}>{renderTextInput(field)}</div>
+          ))}
+
+          <div className="space-y-1.5">
+            <Label className="text-sm">Ideal For</Label>
+            <Select
+                key={selectedIdealFor}
+                value={selectedIdealFor}
+                onValueChange={(value) => {
+                  form.setValue("ideal_for", value, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }}
+            >
+              <SelectTrigger className={compactSelectClass}>
+                <SelectValue placeholder="Select Ideal For" />
+              </SelectTrigger>
+
+              <SelectContent>
+                {idealForOptions.map((option) => (
+                    <SelectItem
+                        key={option.value}
+                        value={option.value}
+                    >
+                      {option.label}
+                    </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {renderFieldError("ideal_for")}
+          </div>
+
+          {renderTextInput({
+            name: "package_contents",
+            label: "Package Contents",
+            placeholder: "e.g. 1 Necklace, 1 Pair Earrings",
+          })}
+        </div>
       </div>
 
       <div className="flex justify-end gap-2 pt-2">

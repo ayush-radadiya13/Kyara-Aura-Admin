@@ -1,44 +1,79 @@
 "use client";
 
+import { Gem } from "lucide-react";
+
 import { cn } from "@/lib/utils";
-import { useSidebarStore } from "@/store/use-sidebar-store";
+import { useDirectionStore } from "@/store/use-direction-store";
+import {
+  Sidebar as SidebarRoot,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarRail,
+  SidebarSeparator,
+  useSidebar,
+} from "@/components/ui/sidebar";
 import { SidebarNav } from "./sidebar-nav";
 
 export function Sidebar() {
-  const isCollapsed = useSidebarStore((s) => s.isCollapsed);
+  const direction = useDirectionStore((s) => s.direction);
+  const { isMobile, setOpenMobile } = useSidebar();
 
   return (
-    <aside
+    <SidebarRoot
+      side={direction === "rtl" ? "right" : "left"}
+      collapsible="icon"
       className={cn(
-        "relative z-30 hidden min-h-svh shrink-0 flex-col self-stretch overflow-hidden border-e border-neutral-200/90 bg-white shadow-[0_4px_28px_rgba(15,23,42,0.07)] md:flex dark:border-sidebar-border dark:bg-sidebar dark:shadow-none",
-        "transition-[width] duration-200 ease-in-out",
-        isCollapsed ? "md:w-[4.75rem]" : "md:w-[17.5rem]"
+        "border-sidebar-border bg-sidebar text-sidebar-foreground",
+        "[&_[data-slot=sidebar-inner]]:bg-sidebar"
       )}
     >
-      <div
-        className={cn(
-          "flex shrink-0 items-center gap-2 px-4 pt-5 pb-3",
-          isCollapsed ? "flex-col justify-center gap-3" : "justify-between"
-        )}
+      <SidebarHeader
+        className="h-14 justify-center border-b border-sidebar-border px-2"
       >
-        <div
-          className={cn(
-            "flex min-w-0 items-center gap-2.5",
-            isCollapsed && "flex-col"
-          )}
-        >
-          <span
-            className={cn(
-              "font-heading text-lg font-bold tracking-tight text-primary dark:text-sidebar-foreground",
-              isCollapsed && "md:sr-only"
-            )}
-          >
-            KYARA AURA
+        <div className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+            <Gem className="size-4" aria-hidden />
           </span>
+          <div className="min-w-0 group-data-[collapsible=icon]:hidden">
+            <p className="truncate font-heading text-sm font-semibold leading-none">
+              KYARA AURA
+            </p>
+            <p className="mt-1 truncate text-xs leading-none text-sidebar-foreground/70">
+              Admin Panel
+            </p>
+          </div>
         </div>
-      </div>
+      </SidebarHeader>
 
-      <SidebarNav collapsed={isCollapsed} enableTooltips />
-    </aside>
+      <SidebarContent>
+        <SidebarNav
+          enableTooltips
+          onNavigate={() => {
+            if (isMobile) {
+              setOpenMobile(false);
+            }
+          }}
+        />
+      </SidebarContent>
+
+      <SidebarSeparator />
+
+      <SidebarFooter className="p-2">
+        <div className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent text-xs font-semibold text-sidebar-accent-foreground">
+            AD
+          </span>
+          <div className="min-w-0 group-data-[collapsible=icon]:hidden">
+            <p className="truncate font-medium leading-none">Admin</p>
+            <p className="mt-1 truncate text-xs leading-none text-sidebar-foreground/70">
+              admin@kyaraaura.com
+            </p>
+          </div>
+        </div>
+      </SidebarFooter>
+
+      <SidebarRail />
+    </SidebarRoot>
   );
 }

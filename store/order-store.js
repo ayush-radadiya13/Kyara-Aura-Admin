@@ -2,15 +2,50 @@
 
 import { create } from "zustand";
 
-const initialState = {
+const initialOrderView = {
   search: "",
+  status: "all",
+  payment_status: "all",
+  shipping_status: "all",
+  shipment_created_from: "",
+  shipment_created_to: "",
   offset: 0,
-  limit: 10,
+  limit: 15,
 };
 
+const createInitialViews = () => ({
+  cod: { ...initialOrderView },
+  online: { ...initialOrderView },
+});
+
+function updateOrderView(state, type, updates) {
+  const currentView = state.orderViews[type] || initialOrderView;
+
+  return {
+    orderViews: {
+      ...state.orderViews,
+      [type]: {
+        ...currentView,
+        ...updates,
+      },
+    },
+  };
+}
+
 export const useOrderStore = create((set) => ({
-  ...initialState,
-  setSearch: (search) => set({ search, offset: 0 }),
-  setPagination: ({ offset, limit }) => set({ offset, limit }),
-  resetOrderView: () => set({ ...initialState }),
+  orderViews: createInitialViews(),
+  setSearch: (type, search) =>
+    set((state) => updateOrderView(state, type, { search, offset: 0 })),
+  setFilter: (type, key, value) =>
+    set((state) => updateOrderView(state, type, { [key]: value, offset: 0 })),
+  setFilters: (type, filters) =>
+    set((state) => updateOrderView(state, type, { ...filters, offset: 0 })),
+  setPagination: (type, { offset, limit }) =>
+    set((state) => updateOrderView(state, type, { offset, limit })),
+  resetOrderView: (type) =>
+    set((state) =>
+      type
+        ? updateOrderView(state, type, { ...initialOrderView })
+        : { orderViews: createInitialViews() }
+    ),
 }));

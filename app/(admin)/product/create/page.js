@@ -11,6 +11,7 @@ import { normalizeCategory } from "@/components/category/category-utils";
 import { Button } from "@/components/ui/button";
 import { useCrudMutation } from "@/hooks/admin/module/use-crud-mutation";
 import { useCategories } from "@/hooks/admin/module/use-categories";
+import { useSizeOptions } from "@/hooks/admin/module/use-sizes";
 import { ADMIN_API_ROUTES } from "@/lib/routes";
 
 export default function CreateProductPage() {
@@ -18,6 +19,7 @@ export default function CreateProductPage() {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const { data } = useCategories(1, 100, "", "all");
+  const { data: sizes = [] } = useSizeOptions();
 
   const categories = useMemo(
     () => (data?.data || data?.results || []).map(normalizeCategory),
@@ -30,6 +32,14 @@ export default function CreateProductPage() {
         value: String(category.id),
       })),
     [categories]
+  );
+  const sizeOptions = useMemo(
+    () =>
+      sizes.map((size) => ({
+        label: size.name,
+        value: String(size.id),
+      })),
+    [sizes]
   );
 
   const { create } = useCrudMutation({
@@ -73,11 +83,12 @@ export default function CreateProductPage() {
         </div>
       </div>
 
-      <div className="rounded-md border border-border p-6">
+      <div>
         <ProductForm
           mode="create"
           loading={loading}
           categoryOptions={categoryOptions}
+          sizeOptions={sizeOptions}
           onCancel={() => router.push("/product")}
           onSubmit={handleSubmit}
         />
