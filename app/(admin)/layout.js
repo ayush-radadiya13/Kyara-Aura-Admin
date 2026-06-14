@@ -1,12 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { AdminLayoutShell } from "@/components/layout/AdminLayout";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
 
 export default function AdminLayout({ children }) {
-  const router = useRouter();
   const { isAuthenticated, isHydrated } = useAuthGuard();
 
   if (!isHydrated) {
@@ -18,7 +16,6 @@ export default function AdminLayout({ children }) {
   }
 
   if (!isAuthenticated) {
-    router.replace("/login");
     return null;
   }
 

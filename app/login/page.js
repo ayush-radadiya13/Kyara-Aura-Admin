@@ -61,7 +61,7 @@ export default function LoginPage() {
   const isSubmitting = form.formState.isSubmitting;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#f8f5f3] via-white to-[#efe6e0] p-4">
+    <div className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="my-4 flex justify-center">
           <Image

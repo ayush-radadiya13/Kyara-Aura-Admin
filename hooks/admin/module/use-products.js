@@ -4,17 +4,27 @@ import { useQuery } from "@tanstack/react-query";
 import { ADMIN_API_ROUTES } from "@/lib/routes";
 import { customAxios } from "@/utils/api";
 
-export function useProducts(page, pageSize, search, isActive) {
+function cleanParams(params) {
+  return Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value !== "" && value !== undefined && value !== null)
+  );
+}
+
+export function useProducts(page, pageSize, filters) {
   return useQuery({
-    queryKey: ["products", page, pageSize, search, isActive],
+    queryKey: ["products", page, pageSize, filters],
     queryFn: async () => {
       const res = await customAxios.get(ADMIN_API_ROUTES.GET_PRODUCTS, {
-        params: {
+        params: cleanParams({
           page,
           per_page: pageSize,
-          ...(search?.trim() ? { search: search.trim() } : {}),
-          ...(isActive !== "all" ? { is_active: isActive } : {}),
-        },
+          search: filters.search?.trim(),
+          category_id: filters.category_id,
+          size_id: filters.size_id,
+          price: filters.price,
+          is_active: filters.is_active,
+          is_collection: filters.is_collection,
+        }),
       });
       return res.data;
     },

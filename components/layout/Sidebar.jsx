@@ -1,6 +1,6 @@
 "use client";
 
-import { Gem } from "lucide-react";
+import Image from "next/image";
 
 import { cn } from "@/lib/utils";
 import { useDirectionStore } from "@/store/use-direction-store";
@@ -29,21 +29,16 @@ export function Sidebar() {
       )}
     >
       <SidebarHeader
-        className="h-14 justify-center border-b border-sidebar-border px-2"
+        className="h-14 shrink-0 justify-center overflow-hidden border-b border-sidebar-border p-0"
       >
-        <div className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-            <Gem className="size-4" aria-hidden />
-          </span>
-          <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-            <p className="truncate font-heading text-sm font-semibold leading-none">
-              KYARA AURA
-            </p>
-            <p className="mt-1 truncate text-xs leading-none text-sidebar-foreground/70">
-              Admin Panel
-            </p>
-          </div>
-        </div>
+        <Image
+          src="/assets/ka-bg.png"
+          alt="Kyara Aura"
+          width={1024}
+          height={683}
+          priority
+          className="h-full w-full object-contain object-center"
+        />
       </SidebarHeader>
 
       <SidebarContent>

@@ -10,7 +10,7 @@ const protectedPaths = [
   "/settings",
 ];
 
-export function middleware(request) {
+export function proxy(request) {
   const token = request.cookies.get(AUTH_COOKIE_KEY)?.value;
   const { pathname } = request.nextUrl;
   const isProtectedPath = protectedPaths.some((path) => pathname.startsWith(path));
