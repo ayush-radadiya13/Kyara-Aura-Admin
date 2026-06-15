@@ -26,6 +26,12 @@ export const useAuthStore = create(
     {
       name: "ka-auth-storage",
       onRehydrateStorage: () => (state) => {
+        if (state?.token) {
+          setAdminToken(state.token);
+        } else {
+          clearAdminToken();
+        }
+
         state?.setHydrated(true);
       },
     }

@@ -42,7 +42,7 @@ export default function EditCategoryPage() {
     setLoading(true);
     try {
       const categoryPayload = await buildCategoryPayload(payload, {
-        editValue: Number(categoryId),
+        editValue: categoryId,
         categoryId,
       });
       await saveCategory(categoryPayload);
