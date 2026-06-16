@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
+  BadgePercent,
   ChevronDown,
   ChevronRight,
   LayoutDashboard,
@@ -37,6 +38,7 @@ const links = {
   products: "/product",
   customers: "/customers",
   orders: "/orders",
+  promoCode: "/promo-code",
   settings: "/settings",
   settingsWeb: "/settings/web-settings",
   settingsBanner: "/settings/banner",
@@ -208,6 +210,20 @@ export function SidebarNav({
             <Package aria-hidden />
             <span className={cn("truncate", collapsed && "sr-only")}>
               Category
+            </span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            render={<Link href={links.promoCode} onClick={onNavigate} />}
+            isActive={isRouteActive(pathname, links.promoCode)}
+            tooltip={enableTooltips ? "Promo Code" : undefined}
+            className={topButtonClass(isRouteActive(pathname, links.promoCode))}
+          >
+            <BadgePercent aria-hidden />
+            <span className={cn("truncate", collapsed && "sr-only")}>
+              Promo Code
             </span>
           </SidebarMenuButton>
         </SidebarMenuItem>

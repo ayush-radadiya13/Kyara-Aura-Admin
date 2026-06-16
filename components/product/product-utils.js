@@ -38,6 +38,16 @@ function isNumericString(value) {
   return typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value));
 }
 
+function normalizeBoolean(value) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+  if (typeof value === "string") {
+    return ["1", "true", "active"].includes(value.toLowerCase());
+  }
+
+  return false;
+}
+
 function resolveProductCategoryId(item) {
   const category = item?.category;
   const categoryId =
@@ -89,7 +99,7 @@ function resolveProductSizeId(size) {
 
 export function normalizeProduct(item) {
   return {
-    id: item?.id ?? item?._id ?? null,
+    id: item?.id ?? item?._id ?? item?.product_id ?? item?.productId ?? item?.productID ?? null,
     name: item?.name ?? "",
     slug: item?.slug ?? "",
     description: item?.description ?? "",
@@ -106,9 +116,9 @@ export function normalizeProduct(item) {
     occasion: item?.occasion ?? "",
     ideal_for: item?.ideal_for ?? item?.idealFor ?? "",
     package_contents: item?.package_contents ?? item?.packageContents ?? "",
-    is_active: Boolean(item?.is_active),
-    track_stock: Boolean(item?.track_stock),
-    is_collection: Boolean(item?.is_collection ?? item?.add_collection),
+    is_active: normalizeBoolean(item?.is_active ?? item?.status),
+    track_stock: normalizeBoolean(item?.track_stock),
+    is_collection: normalizeBoolean(item?.is_collection ?? item?.add_collection),
     images: normalizeProductImages(item),
     sizes: (item?.sizes ?? []).map((size) => ({
       size_id: resolveProductSizeId(size),

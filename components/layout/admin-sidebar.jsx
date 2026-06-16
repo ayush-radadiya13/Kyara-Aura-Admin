@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  BadgePercent,
   LayoutDashboard,
   ShoppingBag,
   Package,
@@ -37,6 +38,7 @@ const menuItems = [
   { label: "Products", href: "/product", icon: Package },
   { label: "Customers", href: "/customers", icon: Users },
   { label: "Orders", href: "/orders", icon: ShoppingBag },
+  { label: "Promo Code", href: "/promo-code", icon: BadgePercent },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 

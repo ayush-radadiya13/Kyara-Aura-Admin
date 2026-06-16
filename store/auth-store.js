@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { clearAdminToken, setAdminToken } from "@/utils/localtoken";
+import { clearAdminToken, getAdminToken, setAdminToken } from "@/utils/localtoken";
 
 export const useAuthStore = create(
   persist(
@@ -29,9 +29,11 @@ export const useAuthStore = create(
         if (state?.token) {
           setAdminToken(state.token);
         } else {
-          clearAdminToken();
+          const token = getAdminToken();
+          if (token) {
+            state?.setAuth({ user: state?.user ?? null, token });
+          }
         }
-
         state?.setHydrated(true);
       },
     }
