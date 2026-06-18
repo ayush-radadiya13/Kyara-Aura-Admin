@@ -6,7 +6,7 @@ export default function BannerSettingsPage() {
     <section>
       <PageHeader
         title="Banner"
-        description="Manage the four banner images displayed across the storefront."
+        description="Manage banner images, video, and shared copy for the storefront."
       />
 
       <BannerManager />

@@ -6,7 +6,7 @@ export default function WebSettingsPage() {
     <section>
       <PageHeader
         title="Web Settings"
-        description="Manage website contact details and logo."
+        description="Manage website contact details, logo, and social links."
       />
 
       <WebSettingsManager />

@@ -3,6 +3,9 @@ export const defaultWebSettings = {
   address: "",
   mobile_number: "",
   logo: "",
+  instagram_url: "",
+  facebook_url: "",
+  whatsapp_url: "",
 };
 
 export function extractWebSettings(response) {
@@ -31,14 +34,32 @@ export function normalizeWebSettings(settings) {
       settings?.mobile ||
       "",
     logo: settings?.logo || settings?.logo_url || settings?.logoUrl || "",
+    instagram_url: settings?.instagram_url || settings?.instagramUrl || "",
+    facebook_url: settings?.facebook_url || settings?.facebookUrl || "",
+    whatsapp_url: settings?.whatsapp_url || settings?.whatsappUrl || "",
+    youtube_url: settings?.youtube_url || settings?.youtubeUrl || "",
+    linkedin_url: settings?.linkedin_url || settings?.linkedinUrl || "",
   };
 }
 
 export function buildWebSettingsPayload(settings) {
-  return {
+  const payload = {
     email: settings.email.trim(),
     address: settings.address.trim(),
     mobile_number: settings.mobile_number.trim(),
     logo: settings.logo.trim(),
+    instagram_url: settings.instagram_url.trim(),
+    facebook_url: settings.facebook_url.trim(),
+    whatsapp_url: settings.whatsapp_url.trim(),
   };
+
+  if (settings.youtube_url?.trim()) {
+    payload.youtube_url = settings.youtube_url.trim();
+  }
+
+  if (settings.linkedin_url?.trim()) {
+    payload.linkedin_url = settings.linkedin_url.trim();
+  }
+
+  return payload;
 }
