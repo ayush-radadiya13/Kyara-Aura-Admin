@@ -42,6 +42,71 @@ const emptyFormState = {
   video_description: "",
 };
 
+const bannerUploadBoxClass =
+  "group relative flex aspect-[16/7] min-h-32 w-full items-center justify-center overflow-hidden rounded-lg border border-dashed border-border bg-muted/30 transition-colors";
+
+const videoUploadBoxClass =
+  "group relative flex aspect-[16/7] min-h-24 w-full max-w-xs items-center justify-center overflow-hidden rounded-lg border border-dashed border-border bg-muted/30 transition-colors";
+
+function MediaUploadBox({
+  inputId,
+  accept,
+  ariaLabel,
+  boxClassName,
+  disabled,
+  isUploading,
+  isBusy,
+  onChange,
+  preview,
+  emptyIcon: EmptyIcon = Plus,
+}) {
+  return (
+    <>
+      <input
+        id={inputId}
+        type="file"
+        accept={accept}
+        className="hidden"
+        disabled={disabled}
+        onChange={onChange}
+      />
+      <label
+        htmlFor={inputId}
+        className={`${boxClassName} ${
+          isBusy
+            ? "cursor-not-allowed opacity-70"
+            : "cursor-pointer hover:border-primary/60 hover:bg-muted/50"
+        }`}
+        aria-label={ariaLabel}
+      >
+        {preview}
+
+        {preview ? (
+          <span className="absolute right-2 bottom-2 flex size-8 items-center justify-center rounded-full bg-white/95 text-foreground shadow-md ring-1 ring-border transition-colors group-hover:text-primary">
+            {isUploading ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+          </span>
+        ) : null}
+
+        {isUploading && preview ? (
+          <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+            <Loader2 className="size-6 animate-spin text-white" />
+          </span>
+        ) : null}
+
+        {!preview ? (
+          <span className="flex size-12 items-center justify-center rounded-full bg-white text-muted-foreground shadow-sm ring-1 ring-border transition-colors group-hover:text-primary">
+            {isUploading ? (
+              <Loader2 className="size-6 animate-spin" />
+            ) : (
+              <EmptyIcon className="size-6" />
+            )}
+          </span>
+        ) : null}
+      </label>
+    </>
+  );
+}
+
 function BannerSkeleton() {
   return (
     <div className="space-y-4">
@@ -65,7 +130,7 @@ function BannerSkeleton() {
           <Skeleton className="h-5 w-28" />
         </CardHeader>
         <CardContent className="space-y-4">
-          <Skeleton className="aspect-video w-full rounded-lg" />
+          <Skeleton className="aspect-[16/7] max-w-xs rounded-lg" />
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-20 w-full" />
         </CardContent>
@@ -310,58 +375,28 @@ export function BannerManager() {
                     <Label htmlFor={imageInputId} className="text-sm text-muted-foreground">
                       Banner Image {index + 1}
                     </Label>
-                    <input
-                      id={imageInputId}
-                      type="file"
+                    <MediaUploadBox
+                      inputId={imageInputId}
                       accept="image/*"
-                      className="hidden"
+                      ariaLabel={`Upload banner image ${index + 1}`}
+                      boxClassName={bannerUploadBoxClass}
                       disabled={isBusy}
+                      isUploading={isUploadingImage}
+                      isBusy={isBusy}
                       onChange={(event) => handleBannerUpload(event, index)}
+                      preview={
+                        slot.image ? (
+                          <Image
+                            src={slot.image}
+                            alt={`Banner image ${index + 1}`}
+                            fill
+                            sizes="(min-width: 640px) 50vw, 100vw"
+                            unoptimized
+                            className="object-cover"
+                          />
+                        ) : null
+                      }
                     />
-                    <label
-                      htmlFor={imageInputId}
-                      className={`group relative flex aspect-[16/7] min-h-32 items-center justify-center overflow-hidden rounded-lg border border-dashed border-border bg-muted/30 transition-colors ${
-                        isBusy
-                          ? "cursor-not-allowed opacity-70"
-                          : "cursor-pointer hover:border-primary/60 hover:bg-muted/50"
-                      }`}
-                      aria-label={`Upload banner image ${index + 1}`}
-                    >
-                      {slot.image ? (
-                        <Image
-                          src={slot.image}
-                          alt={`Banner image ${index + 1}`}
-                          fill
-                          sizes="(min-width: 640px) 50vw, 100vw"
-                          unoptimized
-                          className="object-cover"
-                        />
-                      ) : (
-                        <span className="flex size-12 items-center justify-center rounded-full bg-white text-muted-foreground shadow-sm ring-1 ring-border transition-colors group-hover:text-primary">
-                          {isUploadingImage ? (
-                            <Loader2 className="size-6 animate-spin" />
-                          ) : (
-                            <Plus className="size-6" />
-                          )}
-                        </span>
-                      )}
-
-                      {slot.image ? (
-                        <span className="absolute right-2 bottom-2 flex size-8 items-center justify-center rounded-full bg-white/95 text-foreground shadow-md ring-1 ring-border transition-colors group-hover:text-primary">
-                          {isUploadingImage ? (
-                            <Loader2 className="size-4 animate-spin" />
-                          ) : (
-                            <Plus className="size-4" />
-                          )}
-                        </span>
-                      ) : null}
-
-                      {isUploadingImage && slot.image ? (
-                        <span className="absolute inset-0 flex items-center justify-center bg-black/25">
-                          <Loader2 className="size-6 animate-spin text-white" />
-                        </span>
-                      ) : null}
-                    </label>
 
                     {slot.image ? (
                       <div className="flex justify-end">
@@ -420,30 +455,30 @@ export function BannerManager() {
         <CardContent className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="banner-video">Video</Label>
-            <input
-              id="banner-video"
-              type="file"
+            <p className="text-sm text-muted-foreground">MP4, WebM, or other video formats up to 30 MB.</p>
+            <MediaUploadBox
+              inputId="banner-video"
               accept="video/*"
-              className="hidden"
+              ariaLabel="Upload banner video"
+              boxClassName={videoUploadBoxClass}
               disabled={isBusy}
+              isUploading={isUploadingVideo}
+              isBusy={isBusy}
               onChange={handleVideoUpload}
+              emptyIcon={Video}
+              preview={
+                formState.video ? (
+                  <video
+                    key={formState.video}
+                    src={formState.video}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                ) : null
+              }
             />
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isBusy}
-                className="w-fit border-border bg-white text-foreground hover:bg-white"
-                onClick={() => document.getElementById("banner-video")?.click()}
-              >
-                {isUploadingVideo ? (
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                ) : (
-                  <Video className="mr-2 size-4" />
-                )}
-                Upload Video
-              </Button>
-              {formState.video ? (
+
+            {formState.video ? (
+              <div className="flex max-w-xs justify-end">
                 <Button
                   type="button"
                   variant="destructive"
@@ -456,22 +491,10 @@ export function BannerManager() {
                   ) : (
                     <Trash2 className="mr-2 size-4" />
                   )}
-                  Remove Video
+                  Remove
                 </Button>
-              ) : null}
-            </div>
-            {formState.video ? (
-              <video
-                key={formState.video}
-                src={formState.video}
-                controls
-                className="aspect-video w-full rounded-lg border border-border bg-black/5"
-              />
-            ) : (
-              <div className="flex aspect-video items-center justify-center rounded-lg border border-dashed border-border bg-muted/30 text-sm text-muted-foreground">
-                No video uploaded
               </div>
-            )}
+            ) : null}
           </div>
 
           <div className="space-y-2">

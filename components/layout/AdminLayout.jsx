@@ -20,6 +20,7 @@ export function AdminLayoutShell({ children }) {
         "--sidebar-width": "16rem",
         "--sidebar-width-icon": "3rem",
       }}
+      
       className="fixed inset-0 h-svh overflow-hidden bg-background"
     >
       <Sidebar />
