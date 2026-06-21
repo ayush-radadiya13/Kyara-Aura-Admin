@@ -74,6 +74,43 @@ export function getPaymentStatusClass(status) {
   return "bg-gray-100 text-gray-700 hover:bg-gray-100";
 }
 
+export function getReturnDisplayStatus(order) {
+  const returnStatus = order?.shipment?.return?.status;
+  const orderStatus = order?.status;
+
+  if (orderStatus === "returned" || returnStatus === "delivered") {
+    return "returned";
+  }
+
+  if (["picked_up", "in_transit", "out_for_delivery"].includes(returnStatus)) {
+    return "return_processing";
+  }
+
+  if (orderStatus === "return_requested") {
+    return "return_requested";
+  }
+
+  return null;
+}
+
+export function getReturnStatusClass(status) {
+  const normalizedStatus = String(status || "").toLowerCase();
+
+  if (normalizedStatus === "returned") {
+    return "bg-purple-100 text-purple-700 hover:bg-purple-100";
+  }
+
+  if (normalizedStatus === "return_processing") {
+    return "bg-blue-100 text-blue-700 hover:bg-blue-100";
+  }
+
+  if (normalizedStatus === "return_requested") {
+    return "bg-yellow-100 text-yellow-700 hover:bg-yellow-100";
+  }
+
+  return "bg-gray-100 text-gray-700 hover:bg-gray-100";
+}
+
 export function getDeliveryStatusClass(status) {
   const normalizedStatus = String(status || "").toLowerCase();
 
@@ -107,6 +144,14 @@ export function getOrderDeliveryStatus(order) {
     order?.shipping_status ||
     ""
   );
+}
+
+export function getOrderWaybill(order) {
+  return order?.shipment?.waybill || order?.awb_code || order?.tracking_number || "";
+}
+
+export function hasOrderWaybill(order) {
+  return Boolean(getOrderWaybill(order));
 }
 
 export function isCodOrder(order) {

@@ -57,7 +57,7 @@ export default function CreateCategoryPage() {
         </div>
       </div>
 
-      <div className="rounded-md border border-border p-6">
+      <div className="rounded-md border border-border bg-white p-6">
         <CategoryForm
           mode="create"
           loading={loading}

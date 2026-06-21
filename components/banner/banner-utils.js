@@ -1,115 +1,122 @@
 export const BANNER_SLOT_COUNT = 4;
 export const MAX_BANNER_VIDEO_SIZE = 30 * 1024 * 1024;
 
-export function getBannerId(banner) {
-  return banner?.id ?? banner?._id ?? banner?.banner_id ?? banner?.edit_value ?? null;
-}
+export const defaultBannerSettings = {
+  image1: "",
+  image2: "",
+  image3: "",
+  image4: "",
+  video: "",
+  video_url: "",
+  banner_title: "",
+  banner_description: "",
+  video_title: "",
+  video_description: "",
+  sort_order: 1,
+};
 
-export function getBannerImage(banner) {
-  const image =
-    banner?.image ||
-    banner?.image_url ||
-    banner?.url ||
-    banner?.path ||
-    banner?.file ||
-    "";
+export function extractBannerSettings(response) {
+  const data =
+    response?.data?.data ||
+    response?.data?.result ||
+    response?.data?.banner ||
+    response?.data ||
+    response?.result ||
+    response?.banner ||
+    response ||
+    {};
 
-  if (Array.isArray(image)) {
-    return image.find((value) => typeof value === "string" && value.trim()) || "";
+  if (Array.isArray(data)) {
+    return data[0] || {};
   }
 
-  return typeof image === "string" ? image : "";
+  return data;
 }
 
-export function getBannerVideo(banner) {
-  return banner?.video || banner?.video_url || "";
-}
-
-export function normalizeBanner(banner, fallbackSortOrder = 1) {
-  const sortOrder = Number(banner?.sort_order ?? banner?.sortOrder ?? fallbackSortOrder);
+export function normalizeBannerSettings(settings) {
+  const video = settings?.video || settings?.video_url || "";
 
   return {
-    ...banner,
-    id: getBannerId(banner),
-    image: getBannerImage(banner),
-    video: getBannerVideo(banner),
-    banner_title: banner?.banner_title || "",
-    banner_description: banner?.banner_description || "",
-    video_title: banner?.video_title || "",
-    video_description: banner?.video_description || "",
-    sort_order: Number.isFinite(sortOrder) ? sortOrder : fallbackSortOrder,
+    image1: settings?.image1 || "",
+    image2: settings?.image2 || "",
+    image3: settings?.image3 || "",
+    image4: settings?.image4 || "",
+    video,
+    video_url: settings?.video_url || video,
+    banner_title: settings?.banner_title || "",
+    banner_description: settings?.banner_description || "",
+    video_title: settings?.video_title || "",
+    video_description: settings?.video_description || "",
+    sort_order: Number(settings?.sort_order) || 1,
+    created_at: settings?.created_at || "",
+    updated_at: settings?.updated_at || "",
   };
 }
 
-export function extractBannerList(response) {
-  const list =
-    response?.data?.data ||
-    response?.data?.results ||
-    response?.data?.banners ||
-    response?.data ||
-    response?.results ||
-    response?.banners ||
-    response ||
-    [];
-
-  return Array.isArray(list) ? list : [];
-}
-
-export function buildBannerSlots(banners) {
-  const normalizedBanners = banners.map((banner, index) =>
-    normalizeBanner(banner, index + 1)
-  );
-
-  return Array.from({ length: BANNER_SLOT_COUNT }, (_, index) => {
-    const sortOrder = index + 1;
-    const banner =
-      normalizedBanners.find((item) => item.sort_order === sortOrder) ||
-      normalizedBanners[index];
-
-    return {
-      id: banner?.id ?? null,
-      image: banner?.image ?? "",
-      video: banner?.video ?? "",
-      banner_title: banner?.banner_title ?? "",
-      banner_description: banner?.banner_description ?? "",
-      video_title: banner?.video_title ?? "",
-      video_description: banner?.video_description ?? "",
-      sort_order: sortOrder,
-    };
-  });
-}
-
-function getSharedField(slots, field) {
-  return slots.find((slot) => slot?.[field])?.[field] || slots[0]?.[field] || "";
-}
-
-export function buildBannerFormState(banners) {
-  const slots = buildBannerSlots(banners);
-  const videoSlot = slots.find((slot) => slot.video) || slots[0];
+export function buildBannerFormState(settings) {
+  const normalized = normalizeBannerSettings(settings);
 
   return {
-    imageSlots: slots.map((slot) => ({
-      id: slot.id,
-      image: slot.image,
-      sort_order: slot.sort_order,
+    imageSlots: Array.from({ length: BANNER_SLOT_COUNT }, (_, index) => ({
+      image: normalized[`image${index + 1}`] || "",
+      sort_order: index + 1,
     })),
-    banner_title: getSharedField(slots, "banner_title"),
-    banner_description: getSharedField(slots, "banner_description"),
-    video: videoSlot?.video || "",
-    video_title: getSharedField(slots, "video_title"),
-    video_description: getSharedField(slots, "video_description"),
+    banner_title: normalized.banner_title,
+    banner_description: normalized.banner_description,
+    video: normalized.video,
+    video_title: normalized.video_title,
+    video_description: normalized.video_description,
+    sort_order: normalized.sort_order,
   };
 }
 
-export function buildBannerPayload(slot, { includeVideo = false } = {}) {
+export function buildBannerPayload(formState) {
+  const video = formState.video || "";
+
   return {
-    edit_value: slot?.id || 0,
-    image: slot?.image ? [slot.image] : [],
-    video: includeVideo ? slot?.video || "" : "",
-    banner_title: slot?.banner_title || "",
-    banner_description: slot?.banner_description || "",
-    video_title: includeVideo ? slot?.video_title || "" : "",
-    video_description: includeVideo ? slot?.video_description || "" : "",
-    sort_order: slot?.sort_order || 1,
+    image1: formState.imageSlots[0]?.image?.trim() || "",
+    image2: formState.imageSlots[1]?.image?.trim() || "",
+    image3: formState.imageSlots[2]?.image?.trim() || "",
+    image4: formState.imageSlots[3]?.image?.trim() || "",
+    video,
+    video_url: video,
+    banner_title: formState.banner_title || "",
+    banner_description: formState.banner_description || "",
+    video_title: formState.video_title || "",
+    video_description: formState.video_description || "",
+    sort_order: formState.sort_order || 1,
   };
+}
+
+export function validateBannerFormState(formState) {
+  const missingSlots = formState.imageSlots.reduce((missing, slot, index) => {
+    if (!slot.image?.trim()) {
+      missing.push(index + 1);
+    }
+    return missing;
+  }, []);
+
+  if (missingSlots.length === 0) {
+    return { valid: true, message: "" };
+  }
+
+  const labels = missingSlots.map((slotNumber) => `Banner image ${slotNumber}`).join(", ");
+
+  return {
+    valid: false,
+    message: `${labels} ${missingSlots.length === 1 ? "is" : "are"} required`,
+  };
+}
+
+export function getBannerSaveErrorMessage(error) {
+  const data = error?.response?.data;
+
+  if (data?.errors && typeof data.errors === "object") {
+    const messages = Object.values(data.errors).flat().filter(Boolean);
+    if (messages.length) {
+      return messages.join(". ");
+    }
+  }
+
+  return data?.message || error?.message || "Save failed";
 }

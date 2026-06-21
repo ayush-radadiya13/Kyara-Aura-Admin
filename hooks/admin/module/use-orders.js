@@ -114,6 +114,39 @@ export function useDownloadOrderShipmentLabel(options) {
   });
 }
 
+function getBulkLabelFilename(headers) {
+  const disposition = headers?.["content-disposition"] || "";
+  const filenameMatch = disposition.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i);
+
+  if (filenameMatch?.[1]) {
+    return decodeURIComponent(filenameMatch[1]);
+  }
+
+  return "shipment-labels.pdf";
+}
+
+export function useBulkDownloadOrderShipmentLabels(options) {
+  return useMutation({
+    mutationFn: async (orderIds) => {
+      if (!Array.isArray(orderIds) || orderIds.length === 0) {
+        throw new Error("Select at least one order");
+      }
+
+      const res = await customAxios.post(
+        ADMIN_API_ROUTES.BULK_DOWNLOAD_ORDER_SHIPMENT_LABELS,
+        { order_ids: orderIds },
+        { responseType: "blob" }
+      );
+
+      return {
+        blob: res.data,
+        filename: getBulkLabelFilename(res.headers),
+      };
+    },
+    ...options,
+  });
+}
+
 export function normalizeOrdersResponse(data) {
   return (data?.data || data?.results || []).map(normalizeOrder);
 }

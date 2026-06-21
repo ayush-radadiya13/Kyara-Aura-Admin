@@ -12,6 +12,11 @@ const poppins = Poppins({
 export const metadata = {
   title: "Kayra Aura Admin",
   description: "Modern premium admin panel",
+  icons: {
+    icon: "/assets/ka-bg1.png",
+    shortcut: "/assets/ka-bg1.png",
+    apple: "/assets/ka-bg1.png",
+  },
 };
 
 export default function RootLayout({ children }) {

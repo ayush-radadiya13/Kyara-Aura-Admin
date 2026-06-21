@@ -30,6 +30,8 @@ import {
   formatLabel,
   getOrderStatusClass,
   getPaymentStatusClass,
+  getReturnDisplayStatus,
+  getReturnStatusClass,
 } from "./order-utils";
 
 function DetailField({ label, value }) {
@@ -192,6 +194,7 @@ function DrawerLoadingState() {
 
 export function OrderDetailsDrawer({ open, onOpenChange, order, isLoading }) {
   const orderItems = Array.isArray(order?.order_items) ? order.order_items : [];
+  const returnDisplayStatus = getReturnDisplayStatus(order);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -212,6 +215,11 @@ export function OrderDetailsDrawer({ open, onOpenChange, order, isLoading }) {
             {order?.payment_status && (
               <Badge className={getPaymentStatusClass(order.payment_status)}>
                 {formatLabel(order.payment_status)}
+              </Badge>
+            )}
+            {returnDisplayStatus && (
+              <Badge className={getReturnStatusClass(returnDisplayStatus)}>
+                {formatLabel(returnDisplayStatus)}
               </Badge>
             )}
           </div>
@@ -236,6 +244,12 @@ export function OrderDetailsDrawer({ open, onOpenChange, order, isLoading }) {
                   <DetailField label="Order Number" value={order?.order_number} />
                   <DetailField label="Checkout Type" value={formatLabel(order?.checkout_type)} />
                   <DetailField label="Order Status" value={formatLabel(order?.status)} />
+                  {returnDisplayStatus ? (
+                    <DetailField
+                      label="Return Status"
+                      value={formatLabel(returnDisplayStatus)}
+                    />
+                  ) : null}
                   <DetailField label="Payment Method" value={formatLabel(order?.payment_method)} />
                   <DetailField label="Payment Status" value={formatLabel(order?.payment_status)} />
                   <DetailField label="Paid At" value={formatDateTime(order?.paid_at)} />

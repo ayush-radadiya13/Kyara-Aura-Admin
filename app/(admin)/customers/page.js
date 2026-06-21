@@ -2,7 +2,13 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { Popover } from "@base-ui/react/popover";
-import { CalendarDays, ChevronLeft, ChevronRight, RotateCw } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  RotateCw,
+} from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { DataTableWrapper } from "@/components/common/datatable/data-table-wrapper";
@@ -243,6 +249,7 @@ function RegisterDateRangePicker({ from, to, onRangeChange }) {
 export default function CustomersPage() {
   const queryClient = useQueryClient();
   const [customerAction, setCustomerAction] = useState(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const {
     search,
     is_banned,
@@ -386,60 +393,84 @@ export default function CustomersPage() {
         }
       />
 
-      <div className="mb-4 rounded-md border bg-white p-4">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold">Customer Filters</h2>
-          <Button variant="outline" size="sm" onClick={resetFilters}>
-            Reset Filters
-          </Button>
-        </div>
-
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-            Ban Status
-            <Select
-              value={is_banned}
-              onValueChange={(value) => setFilter("is_banned", value)}
+      <div className="mb-4 rounded-md border bg-white">
+        <div className="flex items-center justify-between gap-3 p-2">
+          <button
+            type="button"
+            className="flex items-center gap-2 text-sm font-semibold"
+            aria-expanded={filtersOpen}
+            onClick={() => setFiltersOpen((open) => !open)}
+          >
+            <ChevronDown
+              className={cn(
+                "size-4 transition-transform",
+                filtersOpen && "rotate-180"
+              )}
+            />
+            Customer Filters
+          </button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={resetFilters}>
+              Reset Filters
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFiltersOpen((open) => !open)}
             >
-              <SelectTrigger className="w-[150px] bg-white">
-                <SelectValue placeholder="All users" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="0">Active</SelectItem>
-                <SelectItem value="1">Banned</SelectItem>
-              </SelectContent>
-            </Select>
-          </label>
-
-          <RegisterDateRangePicker
-            from={registered_from}
-            to={registered_to}
-            onRangeChange={({ from, to }) =>
-              setFilters({
-                registered_from: from,
-                registered_to: to,
-              })
-            }
-          />
-
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-            Orders
-            <Select value={order_range} onValueChange={handleOrderRangeChange}>
-              <SelectTrigger className="w-[150px] bg-white">
-                <SelectValue placeholder="All orders" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                {ORDER_RANGE_OPTIONS.map((range) => (
-                  <SelectItem key={range.value} value={range.value}>
-                    {range.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </label>
+              {filtersOpen ? "Hide" : "Show"}
+            </Button>
+          </div>
         </div>
+
+        {filtersOpen ? (
+          <div className="flex flex-wrap items-end gap-3 border-t p-4">
+            <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+              Ban Status
+              <Select
+                value={is_banned}
+                onValueChange={(value) => setFilter("is_banned", value)}
+              >
+                <SelectTrigger className="w-[150px] bg-white">
+                  <SelectValue placeholder="All users" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="0">Active</SelectItem>
+                  <SelectItem value="1">Banned</SelectItem>
+                </SelectContent>
+              </Select>
+            </label>
+
+            <RegisterDateRangePicker
+              from={registered_from}
+              to={registered_to}
+              onRangeChange={({ from, to }) =>
+                setFilters({
+                  registered_from: from,
+                  registered_to: to,
+                })
+              }
+            />
+
+            <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+              Orders
+              <Select value={order_range} onValueChange={handleOrderRangeChange}>
+                <SelectTrigger className="w-[150px] bg-white">
+                  <SelectValue placeholder="All orders" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  {ORDER_RANGE_OPTIONS.map((range) => (
+                    <SelectItem key={range.value} value={range.value}>
+                      {range.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+          </div>
+        ) : null}
       </div>
 
       {!tableLoading && customers.length === 0 && !hasFilters ? (

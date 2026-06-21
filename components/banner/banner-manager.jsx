@@ -9,8 +9,9 @@ import {
   BANNER_SLOT_COUNT,
   buildBannerFormState,
   buildBannerPayload,
+  getBannerSaveErrorMessage,
   MAX_BANNER_VIDEO_SIZE,
-  normalizeBanner,
+  validateBannerFormState,
 } from "@/components/banner/banner-utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,7 +32,6 @@ import { customAxios } from "@/utils/api";
 
 const emptyFormState = {
   imageSlots: Array.from({ length: BANNER_SLOT_COUNT }, (_, index) => ({
-    id: null,
     image: "",
     sort_order: index + 1,
   })),
@@ -40,13 +40,11 @@ const emptyFormState = {
   video: "",
   video_title: "",
   video_description: "",
+  sort_order: 1,
 };
 
-const bannerUploadBoxClass =
+const mediaUploadBoxClass =
   "group relative flex aspect-[16/7] min-h-32 w-full items-center justify-center overflow-hidden rounded-lg border border-dashed border-border bg-muted/30 transition-colors";
-
-const videoUploadBoxClass =
-  "group relative flex aspect-[16/7] min-h-24 w-full max-w-xs items-center justify-center overflow-hidden rounded-lg border border-dashed border-border bg-muted/30 transition-colors";
 
 function MediaUploadBox({
   inputId,
@@ -130,7 +128,7 @@ function BannerSkeleton() {
           <Skeleton className="h-5 w-28" />
         </CardHeader>
         <CardContent className="space-y-4">
-          <Skeleton className="aspect-[16/7] max-w-xs rounded-lg" />
+          <Skeleton className="aspect-[16/7] w-full rounded-lg" />
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-20 w-full" />
         </CardContent>
@@ -141,19 +139,21 @@ function BannerSkeleton() {
 
 export function BannerManager() {
   const queryClient = useQueryClient();
-  const { data = [], isLoading, isFetching, refetch } = useBanners();
+  const { data, isLoading, isFetching, refetch } = useBanners();
   const [formState, setFormState] = useState(emptyFormState);
   const [uploadingImageSlot, setUploadingImageSlot] = useState(null);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [removingImageSlot, setRemovingImageSlot] = useState(null);
-  const [isRemovingVideo, setIsRemovingVideo] = useState(false);
 
-  const serverFormState = useMemo(() => buildBannerFormState(data), [data]);
+  const serverFormState = useMemo(
+    () => buildBannerFormState(data || {}),
+    [data]
+  );
 
   useEffect(() => {
+    if (isLoading) return;
     setFormState(serverFormState);
-  }, [serverFormState]);
+  }, [isLoading, serverFormState]);
 
   const updateField = (field, value) => {
     setFormState((current) => ({
@@ -162,51 +162,14 @@ export function BannerManager() {
     }));
   };
 
-  const updateImageSlot = (slotIndex, updates) => {
-    setFormState((current) => ({
-      ...current,
-      imageSlots: current.imageSlots.map((slot, index) =>
-        index === slotIndex ? { ...slot, ...updates } : slot
-      ),
-    }));
-  };
-
-  const buildSlotPayload = (slotIndex, overrides = {}) => {
-    const imageSlot = formState.imageSlots[slotIndex];
-
-    return {
-      id: imageSlot?.id || null,
-      image: imageSlot?.image || "",
-      sort_order: slotIndex + 1,
-      banner_title: formState.banner_title,
-      banner_description: formState.banner_description,
-      video: formState.video,
-      video_title: formState.video_title,
-      video_description: formState.video_description,
-      ...overrides,
-    };
-  };
-
-  const saveBannerSlot = async (slotIndex, overrides = {}, { includeVideo = false } = {}) => {
-    const slot = buildSlotPayload(slotIndex, overrides);
-    const payload = buildBannerPayload(slot, { includeVideo });
-
-    const { data: savedBannerResponse } = await customAxios.post(
-      ADMIN_API_ROUTES.CREATE_BANNERS,
+  const saveBanners = async (nextFormState) => {
+    const payload = buildBannerPayload(nextFormState);
+    const { data: responseData } = await customAxios.put(
+      ADMIN_API_ROUTES.UPDATE_BANNERS,
       payload
     );
 
-    const savedBanner = normalizeBanner(
-      savedBannerResponse?.data || savedBannerResponse?.result || savedBannerResponse,
-      slotIndex + 1
-    );
-
-    updateImageSlot(slotIndex, {
-      id: savedBanner.id || slot.id || null,
-      image: savedBanner.image || slot.image || "",
-    });
-
-    return savedBanner;
+    return responseData;
   };
 
   const handleBannerUpload = async (event, slotIndex) => {
@@ -223,9 +186,13 @@ export function BannerManager() {
     setUploadingImageSlot(slotIndex);
     try {
       const imageUrl = await uploadMediaFile(file, "banners");
-      await saveBannerSlot(slotIndex, { image: imageUrl }, { includeVideo: slotIndex === 0 });
-      await queryClient.invalidateQueries({ queryKey: ["banners"] });
-      toast.success(`Banner image ${slotIndex + 1} saved successfully`);
+      setFormState((current) => ({
+        ...current,
+        imageSlots: current.imageSlots.map((slot, index) =>
+          index === slotIndex ? { ...slot, image: imageUrl } : slot
+        ),
+      }));
+      toast.success(`Banner image ${slotIndex + 1} uploaded. Click Save Settings when all 4 images are ready.`);
     } catch (error) {
       toast.error(error?.response?.data?.message || error?.message || "Banner upload failed");
     } finally {
@@ -252,10 +219,8 @@ export function BannerManager() {
     setIsUploadingVideo(true);
     try {
       const videoUrl = await uploadMediaFile(file, "banners");
-      updateField("video", videoUrl);
-      await saveBannerSlot(0, { video: videoUrl }, { includeVideo: true });
-      await queryClient.invalidateQueries({ queryKey: ["banners"] });
-      toast.success("Video saved successfully");
+      setFormState((current) => ({ ...current, video: videoUrl }));
+      toast.success("Video uploaded. Click Save Settings to apply changes.");
     } catch (error) {
       toast.error(error?.response?.data?.message || error?.message || "Video upload failed");
     } finally {
@@ -264,73 +229,48 @@ export function BannerManager() {
   };
 
   const handleSaveAll = async () => {
+    const validation = validateBannerFormState(formState);
+    if (!validation.valid) {
+      toast.error(validation.message);
+      return;
+    }
+
     setIsSaving(true);
     try {
-      await saveBannerSlot(0, {}, { includeVideo: true });
-
-      for (let slotIndex = 1; slotIndex < BANNER_SLOT_COUNT; slotIndex += 1) {
-        const imageSlot = formState.imageSlots[slotIndex];
-        if (!imageSlot?.image && !imageSlot?.id) continue;
-
-        await saveBannerSlot(slotIndex, {}, { includeVideo: false });
-      }
-
+      await saveBanners(formState);
       await queryClient.invalidateQueries({ queryKey: ["banners"] });
       toast.success("Banner settings saved successfully");
     } catch (error) {
-      toast.error(error?.response?.data?.message || error?.message || "Save failed");
+      toast.error(getBannerSaveErrorMessage(error));
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleRemoveImage = async (slotIndex) => {
+  const handleRemoveImage = (slotIndex) => {
     const imageSlot = formState.imageSlots[slotIndex];
+    if (!imageSlot?.image) return;
 
-    if (!imageSlot?.id) {
-      updateImageSlot(slotIndex, { id: null, image: "" });
-      return;
-    }
-
-    setRemovingImageSlot(slotIndex);
-    try {
-      await customAxios.delete(`${ADMIN_API_ROUTES.DELETE_BANNERS}/${imageSlot.id}`);
-      updateImageSlot(slotIndex, { id: null, image: "" });
-      await queryClient.invalidateQueries({ queryKey: ["banners"] });
-      toast.success(`Banner image ${slotIndex + 1} removed`);
-    } catch (error) {
-      toast.error(error?.response?.data?.message || error?.message || "Remove failed");
-    } finally {
-      setRemovingImageSlot(null);
-    }
+    setFormState((current) => ({
+      ...current,
+      imageSlots: current.imageSlots.map((slot, index) =>
+        index === slotIndex ? { ...slot, image: "" } : slot
+      ),
+    }));
+    toast.message(`Banner image ${slotIndex + 1} removed. Click Save Settings to apply changes.`);
   };
 
-  const handleRemoveVideo = async () => {
-    updateField("video", "");
+  const handleRemoveVideo = () => {
+    if (!formState.video) return;
 
-    const primarySlot = formState.imageSlots[0];
-    if (!primarySlot?.id && !formState.video) return;
-
-    setIsRemovingVideo(true);
-    try {
-      if (primarySlot?.id) {
-        await saveBannerSlot(0, { video: "" }, { includeVideo: true });
-      }
-      await queryClient.invalidateQueries({ queryKey: ["banners"] });
-      toast.success("Video removed");
-    } catch (error) {
-      toast.error(error?.response?.data?.message || error?.message || "Video remove failed");
-    } finally {
-      setIsRemovingVideo(false);
-    }
+    setFormState((current) => ({ ...current, video: "" }));
+    toast.message("Video removed. Click Save Settings to apply changes.");
   };
 
   const isBusy =
     isSaving ||
     isUploadingVideo ||
-    isRemovingVideo ||
-    uploadingImageSlot !== null ||
-    removingImageSlot !== null;
+    uploadingImageSlot !== null;
 
   if (isLoading) {
     return <BannerSkeleton />;
@@ -342,7 +282,10 @@ export function BannerManager() {
         <Button
           type="button"
           variant="outline"
-          onClick={() => refetch()}
+          onClick={async () => {
+            const result = await refetch();
+            setFormState(buildBannerFormState(result.data || {}));
+          }}
           disabled={isFetching || isBusy}
           className="border-border bg-white text-foreground hover:bg-white"
         >
@@ -358,7 +301,9 @@ export function BannerManager() {
       <Card className="border-border/70">
         <CardHeader>
           <CardTitle>Banner Section</CardTitle>
-          <CardDescription>Upload up to four banner images with shared title and description.</CardDescription>
+          <CardDescription>
+            Upload all four banner images with shared title and description. All 4 images are required before saving.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="space-y-3">
@@ -367,8 +312,6 @@ export function BannerManager() {
               {formState.imageSlots.map((slot, index) => {
                 const imageInputId = `banner-image-${index + 1}`;
                 const isUploadingImage = uploadingImageSlot === index;
-                const isRemovingImage = removingImageSlot === index;
-                const slotBusy = isUploadingImage || isRemovingImage;
 
                 return (
                   <div key={slot.sort_order} className="space-y-2">
@@ -379,7 +322,7 @@ export function BannerManager() {
                       inputId={imageInputId}
                       accept="image/*"
                       ariaLabel={`Upload banner image ${index + 1}`}
-                      boxClassName={bannerUploadBoxClass}
+                      boxClassName={mediaUploadBoxClass}
                       disabled={isBusy}
                       isUploading={isUploadingImage}
                       isBusy={isBusy}
@@ -407,11 +350,7 @@ export function BannerManager() {
                           onClick={() => handleRemoveImage(index)}
                           disabled={isBusy}
                         >
-                          {isRemovingImage ? (
-                            <Loader2 className="mr-2 size-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="mr-2 size-4" />
-                          )}
+                          <Trash2 className="mr-2 size-4" />
                           Remove
                         </Button>
                       </div>
@@ -460,7 +399,7 @@ export function BannerManager() {
               inputId="banner-video"
               accept="video/*"
               ariaLabel="Upload banner video"
-              boxClassName={videoUploadBoxClass}
+              boxClassName={mediaUploadBoxClass}
               disabled={isBusy}
               isUploading={isUploadingVideo}
               isBusy={isBusy}
@@ -471,14 +410,18 @@ export function BannerManager() {
                   <video
                     key={formState.video}
                     src={formState.video}
-                    className="absolute inset-0 h-full w-full object-cover"
+                    muted
+                    playsInline
+                    preload="metadata"
+                    controls
+                    className="absolute inset-0 z-0 h-full w-full object-cover"
                   />
                 ) : null
               }
             />
 
             {formState.video ? (
-              <div className="flex max-w-xs justify-end">
+              <div className="flex justify-end">
                 <Button
                   type="button"
                   variant="destructive"
@@ -486,11 +429,7 @@ export function BannerManager() {
                   onClick={handleRemoveVideo}
                   disabled={isBusy}
                 >
-                  {isRemovingVideo ? (
-                    <Loader2 className="mr-2 size-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="mr-2 size-4" />
-                  )}
+                  <Trash2 className="mr-2 size-4" />
                   Remove
                 </Button>
               </div>

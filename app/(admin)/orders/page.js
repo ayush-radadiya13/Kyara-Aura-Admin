@@ -8,12 +8,14 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Download,
+  Loader2,
   RotateCw,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { DataTableWrapper } from "@/components/common/datatable/data-table-wrapper";
-import { getOrderColumns } from "@/components/order/order-columns";
+import { getOrderColumns, BULK_LABEL_DOWNLOAD_LIMIT } from "@/components/order/order-columns";
 import { OrderDetailsDrawer } from "@/components/order/order-details-drawer";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
@@ -29,6 +31,7 @@ import {
   normalizeOrdersResponse,
   useCancelOrderShipment,
   useCreateOrderShipment,
+  useBulkDownloadOrderShipmentLabels,
   useDownloadOrderShipmentLabel,
   useOrderDetails,
   useOrders,
@@ -337,6 +340,7 @@ export default function OrdersPage() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [shipmentAction, setShipmentAction] = useState(null);
+  const [selectedOrderIds, setSelectedOrderIds] = useState([]);
   const searchParams = useSearchParams();
   const {
     orderViews,
@@ -459,6 +463,29 @@ export default function OrdersPage() {
       onSettled: () => setShipmentAction(null),
     });
 
+  const {
+    mutate: bulkDownloadOrderShipmentLabels,
+    isPending: isBulkDownloadingLabels,
+  } = useBulkDownloadOrderShipmentLabels({
+    onSuccess: ({ blob, filename }) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Shipment labels downloaded");
+      setSelectedOrderIds([]);
+    },
+    onError: (error) =>
+      toast.error(
+        error?.response?.data?.message || "Bulk label download failed"
+      ),
+  });
+
   const handleViewDetails = (order) => {
     setSelectedOrder(order);
     setIsDetailsOpen(true);
@@ -497,6 +524,37 @@ export default function OrdersPage() {
     [downloadOrderShipmentLabel]
   );
 
+  const handleToggleOrderSelection = useCallback((order) => {
+    const orderId = Number(order?.id);
+    if (!orderId) return;
+
+    setSelectedOrderIds((current) => {
+      if (current.includes(orderId)) {
+        return current.filter((id) => id !== orderId);
+      }
+
+      if (current.length >= BULK_LABEL_DOWNLOAD_LIMIT) {
+        toast.error(`You can select up to ${BULK_LABEL_DOWNLOAD_LIMIT} orders at once`);
+        return current;
+      }
+
+      return [...current, orderId];
+    });
+  }, []);
+
+  const handleBulkDownloadLabels = useCallback(() => {
+    if (selectedOrderIds.length === 0) {
+      toast.error("Select at least one order to download labels");
+      return;
+    }
+
+    bulkDownloadOrderShipmentLabels(selectedOrderIds);
+  }, [bulkDownloadOrderShipmentLabels, selectedOrderIds]);
+
+  useEffect(() => {
+    setSelectedOrderIds([]);
+  }, [offset, limit, orderType, searchParamsKey]);
+
   const handleDetailsOpenChange = (open) => {
     setIsDetailsOpen(open);
 
@@ -507,7 +565,10 @@ export default function OrdersPage() {
 
   const tableLoading = isLoading || isFetching;
   const actionLoading =
-    isCreatingShipment || isCancellingShipment || isDownloadingLabel;
+    isCreatingShipment ||
+    isCancellingShipment ||
+    isDownloadingLabel ||
+    isBulkDownloadingLabels;
   const hasFilters = Boolean(
     search.trim() ||
       status !== "all" ||
@@ -524,12 +585,17 @@ export default function OrdersPage() {
         onDownloadLabel: handleDownloadLabel,
         actionOrderId: shipmentAction?.orderId,
         actionType: shipmentAction?.type,
+        selectedOrderIds,
+        onToggleOrderSelection: handleToggleOrderSelection,
+        bulkSelectionLimit: BULK_LABEL_DOWNLOAD_LIMIT,
       }),
     [
       actionLoading,
       handleCancelOrder,
       handleConfirmOrder,
       handleDownloadLabel,
+      handleToggleOrderSelection,
+      selectedOrderIds,
       shipmentAction?.orderId,
       shipmentAction?.type,
       tableLoading,
@@ -627,7 +693,31 @@ export default function OrdersPage() {
           description="Customer orders will appear here once available."
         />
       ) : (
-        <DataTableWrapper
+        <>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 px-1">
+            <p className="text-sm text-muted-foreground">
+              {selectedOrderIds.length > 0
+                ? `${selectedOrderIds.length} of ${BULK_LABEL_DOWNLOAD_LIMIT} orders selected`
+                : `Select orders with waybill to download up to ${BULK_LABEL_DOWNLOAD_LIMIT} labels at once`}
+            </p>
+            <Button
+              onClick={handleBulkDownloadLabels}
+              disabled={
+                tableLoading ||
+                isBulkDownloadingLabels ||
+                selectedOrderIds.length === 0
+              }
+            >
+              {isBulkDownloadingLabels ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Download className="size-4" />
+              )}
+              Download Stickers
+              {selectedOrderIds.length > 0 ? ` (${selectedOrderIds.length})` : ""}
+            </Button>
+          </div>
+          <DataTableWrapper
           offset={offset}
           limit={limit}
           total={totalCount}
@@ -641,6 +731,7 @@ export default function OrdersPage() {
           }}
           onEditAction={handleViewDetails}
         />
+        </>
       )}
 
       <OrderDetailsDrawer

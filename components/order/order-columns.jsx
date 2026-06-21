@@ -16,9 +16,13 @@ import {
   getOrderDeliveryStatus,
   getOrderStatusClass,
   getPaymentStatusClass,
+  getReturnDisplayStatus,
+  getReturnStatusClass,
+  hasOrderWaybill,
 } from "./order-utils";
 
 const PENDING_ADMIN_CONFIRMATION = "pending_admin_confirmation";
+export const BULK_LABEL_DOWNLOAD_LIMIT = 30;
 
 export function getOrderColumns(loading, shipmentActions = {}) {
   const {
@@ -27,6 +31,9 @@ export function getOrderColumns(loading, shipmentActions = {}) {
     onDownloadLabel,
     actionOrderId,
     actionType,
+    selectedOrderIds = [],
+    onToggleOrderSelection,
+    bulkSelectionLimit = BULK_LABEL_DOWNLOAD_LIMIT,
   } = shipmentActions;
 
   return (_sortAttr, _sort, _onSort, _onDelete, onViewDetails) => [
@@ -34,12 +41,14 @@ export function getOrderColumns(loading, shipmentActions = {}) {
       id: "actions",
       header: () => <div className="text-left">Action</div>,
       enableSorting: false,
-      meta: { width: "180px" },
+      meta: { width: "210px" },
       cell: ({ row }) => {
         const order = row.original;
         const orderId = order?.id;
         const status = String(order?.status || "").toLowerCase();
         const showCodActions = status === PENDING_ADMIN_CONFIRMATION;
+        const hasWaybill = hasOrderWaybill(order);
+        const isSelected = selectedOrderIds.includes(Number(orderId));
         const isConfirming =
           actionOrderId === orderId && actionType === "confirm";
         const isCancelling =
@@ -48,7 +57,21 @@ export function getOrderColumns(loading, shipmentActions = {}) {
           actionOrderId === orderId && actionType === "download-label";
 
         return (
-          <div className="flex justify-start gap-1">
+          <div className="flex justify-start items-center gap-1">
+            {hasWaybill ? (
+              <input
+                type="checkbox"
+                aria-label={`Select order ${order?.order_number || orderId}`}
+                checked={isSelected}
+                disabled={
+                  loading ||
+                  !orderId ||
+                  (!isSelected && selectedOrderIds.length >= bulkSelectionLimit)
+                }
+                onChange={() => onToggleOrderSelection?.(order)}
+                className="size-4 shrink-0 cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            ) : null}
             {showCodActions && (
               <>
                 <Button
@@ -81,26 +104,28 @@ export function getOrderColumns(loading, shipmentActions = {}) {
                 </Button>
               </>
             )}
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Download Label"
-                    onClick={() => onDownloadLabel?.(order)}
-                    disabled={loading || !orderId}
-                  >
-                    {isDownloadingLabel ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <Download className="size-4" />
-                    )}
-                  </Button>
-                }
-              />
-              <TooltipContent>Download Label</TooltipContent>
-            </Tooltip>
+            {hasWaybill ? (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Download Label"
+                      onClick={() => onDownloadLabel?.(order)}
+                      disabled={loading || !orderId}
+                    >
+                      {isDownloadingLabel ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Download className="size-4" />
+                      )}
+                    </Button>
+                  }
+                />
+                <TooltipContent>Download Label</TooltipContent>
+              </Tooltip>
+            ) : null}
             <Button
               variant="ghost"
               size="icon"
@@ -182,6 +207,25 @@ export function getOrderColumns(loading, shipmentActions = {}) {
 
         return (
           <Badge className={getDeliveryStatusClass(status)}>
+            {formatLabel(status)}
+          </Badge>
+        );
+      },
+    },
+    {
+      id: "return_status",
+      header: "Return Status",
+      meta: { width: "150px" },
+      accessorFn: (row) => getReturnDisplayStatus(row),
+      cell: ({ row }) => {
+        const status = getReturnDisplayStatus(row.original);
+
+        if (!status) {
+          return <span className="text-muted-foreground">-</span>;
+        }
+
+        return (
+          <Badge className={getReturnStatusClass(status)}>
             {formatLabel(status)}
           </Badge>
         );

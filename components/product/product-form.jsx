@@ -559,7 +559,7 @@ export function ProductForm({
 
   return (
     <form onSubmit={submitHandler} className="space-y-4">
-      <div className="rounded-lg border border-border p-4">
+      <div className="rounded-lg border border-border bg-white p-4">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
           {renderImageUpload()}
 
@@ -603,7 +603,7 @@ export function ProductForm({
         </div>
       </div>
 
-      <div className="rounded-lg border border-border p-4">
+      <div className="rounded-lg border border-border bg-white p-4">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
           <div className="space-y-1.5 lg:col-span-2">
             <Label className="text-sm">Category</Label>
@@ -671,7 +671,7 @@ export function ProductForm({
         </div>
       </div>
 
-      <div className="space-y-3 rounded-lg border border-border p-4">
+      <div className="space-y-3 rounded-lg border bg-white border-border p-4">
         <div className="flex items-center justify-between">
           <Label>Product Sizes</Label>
           <Button
@@ -780,7 +780,7 @@ export function ProductForm({
         )}
       </div>
 
-      <div className="rounded-lg border border-border bg-muted/20 p-4">
+      <div className="rounded-lg border border-border bg-white p-4">
         <h3 className="mb-4 text-sm font-semibold text-foreground">Product Details</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {productDetailFields.map((field) => (

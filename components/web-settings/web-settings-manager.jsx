@@ -8,6 +8,10 @@ import { toast } from "sonner";
 import {
   buildWebSettingsPayload,
   defaultWebSettings,
+  extractWebSettings,
+  normalizeWebSettings,
+  resolveLogoPreviewUrl,
+  toLogoStoragePath,
 } from "@/components/web-settings/web-settings-utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +23,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useWebSettings } from "@/hooks/admin/module/use-web-settings";
@@ -93,6 +98,10 @@ export function WebSettingsManager() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const currentValues = formValues ?? data ?? defaultWebSettings;
+  const logoPreviewUrl = resolveLogoPreviewUrl(
+    currentValues.logo,
+    currentValues.logo_url
+  );
 
   const updateField = (field, value) => {
     setFormValues((current) => ({
@@ -114,8 +123,14 @@ export function WebSettingsManager() {
 
     setIsUploadingLogo(true);
     try {
-      const logoUrl = await uploadMediaFile(file, "settings");
-      updateField("logo", logoUrl);
+      const uploadedLogo = await uploadMediaFile(file, "settings");
+      const logoPath = toLogoStoragePath(uploadedLogo);
+
+      setFormValues((current) => ({
+        ...(current ?? data ?? defaultWebSettings),
+        logo: logoPath,
+        logo_url: resolveLogoPreviewUrl(logoPath, uploadedLogo),
+      }));
       toast.success("Logo uploaded successfully");
     } catch (error) {
       toast.error(error?.response?.data?.message || error?.message || "Logo upload failed");
@@ -146,7 +161,9 @@ export function WebSettingsManager() {
       );
 
       toast.success(responseData?.message || "Web settings saved successfully");
-      setFormValues(payload);
+      setFormValues(
+        normalizeWebSettings(extractWebSettings(responseData) || payload)
+      );
       await queryClient.invalidateQueries({ queryKey: ["web-settings"] });
     } catch (error) {
       toast.error(error?.response?.data?.message || error?.message || "Save failed");
@@ -194,9 +211,9 @@ export function WebSettingsManager() {
             <Label>Logo</Label>
             <div className="flex flex-col gap-4 rounded-lg border border-border p-4 sm:flex-row sm:items-center">
               <div className="relative flex h-24 w-48 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-border bg-muted/30">
-                {currentValues.logo ? (
+                {logoPreviewUrl ? (
                   <Image
-                    src={currentValues.logo}
+                    src={logoPreviewUrl}
                     alt="Website logo"
                     fill
                     sizes="192px"
@@ -274,6 +291,99 @@ export function WebSettingsManager() {
               disabled={actionDisabled}
               className="min-h-28"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="web-settings-footer-description">Footer Description</Label>
+            <Textarea
+              id="web-settings-footer-description"
+              placeholder="Short description shown in the storefront footer"
+              value={currentValues.footer_description}
+              onChange={(event) =>
+                updateField("footer_description", event.target.value)
+              }
+              disabled={actionDisabled}
+              className="min-h-24"
+            />
+          </div>
+
+          <div className="space-y-4 rounded-lg border border-border p-4">
+            <div>
+              <h3 className="text-sm font-medium">Promotions</h3>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="web-settings-buy-two-get-one-free">
+                  Buy 2 Get 1 Free
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Enable the buy two get one free offer on the storefront.
+                </p>
+              </div>
+              <Switch
+                id="web-settings-buy-two-get-one-free"
+                checked={currentValues.buy_two_get_one_free_enabled}
+                onCheckedChange={(checked) =>
+                  updateField("buy_two_get_one_free_enabled", checked)
+                }
+                disabled={actionDisabled}
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="web-settings-first-order-discount">
+                  First Order Discount Amount
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="web-settings-first-order-discount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0"
+                    className="pr-10"
+                    value={currentValues.first_order_discount_amount}
+                    onChange={(event) =>
+                      updateField(
+                        "first_order_discount_amount",
+                        event.target.value === "" ? 0 : Number(event.target.value)
+                      )
+                    }
+                    disabled={actionDisabled}
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                    Rs
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="web-settings-online-payment-discount">
+                  Online Payment Discount
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="web-settings-online-payment-discount"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    placeholder="0"
+                    className="pr-8"
+                    value={currentValues.online_payment_discount_percent}
+                    onChange={(event) =>
+                      updateField(
+                        "online_payment_discount_percent",
+                        event.target.value === "" ? 0 : Number(event.target.value)
+                      )
+                    }
+                    disabled={actionDisabled}
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                    %
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-4 rounded-lg border border-border p-4">

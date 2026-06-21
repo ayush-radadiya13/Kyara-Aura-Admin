@@ -17,6 +17,9 @@ function getUploadedMediaUrl(response) {
     data?.secure_url,
     data?.file_url,
     data?.image_url,
+    data?.video_url,
+    data?.video,
+    data?.media_url,
     data?.urls?.[0],
     data?.files?.[0],
   ];
