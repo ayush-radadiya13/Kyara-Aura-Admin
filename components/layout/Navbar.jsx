@@ -119,7 +119,7 @@ export function Navbar() {
           <DropdownMenuContent align="end" className="min-w-44">
             <DropdownMenuLabel className="font-normal">
               <span className="text-foreground">Admin</span>
-              <span className="block text-muted-foreground">admin@kyaraaura.com</span>
+              <span className="block text-muted-foreground">admin@kayraaura.com</span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>Profile</DropdownMenuItem>

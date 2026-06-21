@@ -1,4 +1,15 @@
 import { NextResponse } from "next/server";
+import { AUTH_COOKIE_KEY, AUTH_COOKIE_MAX_AGE_SECONDS } from "@/lib/constants";
+
+function extractToken(data) {
+  return (
+    data?.data?.token ||
+    data?.data?.access_token ||
+    data?.token ||
+    data?.access_token ||
+    null
+  );
+}
 
 export async function POST(request) {
   const apiBase = process.env.API_BASE || process.env.NEXT_PUBLIC_API_BASE;
@@ -22,7 +33,18 @@ export async function POST(request) {
       ? await response.json()
       : { message: await response.text() };
 
-    return NextResponse.json(data, { status: response.status });
+    const nextResponse = NextResponse.json(data, { status: response.status });
+    const token = extractToken(data);
+
+    if (response.ok && token) {
+      nextResponse.cookies.set(AUTH_COOKIE_KEY, token, {
+        path: "/",
+        maxAge: AUTH_COOKIE_MAX_AGE_SECONDS,
+        sameSite: "lax",
+      });
+    }
+
+    return nextResponse;
   } catch {
     return NextResponse.json(
       { message: "Unable to reach login service" },

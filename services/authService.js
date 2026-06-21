@@ -1,9 +1,23 @@
-import { ADMIN_API_ROUTES } from "@/lib/routes";
-import { withoutTokenApi } from "@/utils/api";
-
 export const authService = {
   async login(payload) {
-    const { data } = await withoutTokenApi.post(ADMIN_API_ROUTES.LOGIN, payload);
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      credentials: "include",
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw {
+        response: {
+          status: response.status,
+          data,
+        },
+      };
+    }
+
     return data;
   },
 };

@@ -15,7 +15,6 @@ import { toast } from "sonner";
 import { DataTableWrapper } from "@/components/common/datatable/data-table-wrapper";
 import { getOrderColumns } from "@/components/order/order-columns";
 import { OrderDetailsDrawer } from "@/components/order/order-details-drawer";
-import { buildOrderItemRows } from "@/components/order/order-utils";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -399,7 +398,6 @@ export default function OrdersPage() {
   );
 
   const orders = useMemo(() => normalizeOrdersResponse(data), [data]);
-  const orderItemRows = useMemo(() => buildOrderItemRows(orders), [orders]);
   const totalCount = data?.meta?.total ?? data?.total ?? orders.length;
 
   const {
@@ -623,7 +621,7 @@ export default function OrdersPage() {
         ) : null}
       </div>
 
-      {!tableLoading && orderItemRows.length === 0 && !hasFilters ? (
+      {!tableLoading && orders.length === 0 && !hasFilters ? (
         <EmptyState
           title="No orders yet"
           description="Customer orders will appear here once available."
@@ -634,7 +632,7 @@ export default function OrdersPage() {
           limit={limit}
           total={totalCount}
           search={search}
-          data={orderItemRows}
+          data={orders}
           isLoading={tableLoading}
           getColumns={getColumns}
           onSearchAction={(value) => setSearch(orderType, value)}

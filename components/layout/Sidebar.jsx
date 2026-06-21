@@ -33,7 +33,7 @@ export function Sidebar() {
       >
         <Image
           src="/assets/ka-bg.png"
-          alt="Kyara Aura"
+          alt="Kayra Aura"
           width={1024}
           height={683}
           priority
@@ -62,7 +62,7 @@ export function Sidebar() {
           <div className="min-w-0 group-data-[collapsible=icon]:hidden">
             <p className="truncate font-medium leading-none">Admin</p>
             <p className="mt-1 truncate text-xs leading-none text-sidebar-foreground/70">
-              admin@kyaraaura.com
+              admin@kayraaura.com
             </p>
           </div>
         </div>

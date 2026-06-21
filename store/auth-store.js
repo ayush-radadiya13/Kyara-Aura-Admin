@@ -4,6 +4,22 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { clearAdminToken, getAdminToken, setAdminToken } from "@/utils/localtoken";
 
+function syncAuthFromCookie() {
+  const token = getAdminToken();
+  const state = useAuthStore.getState();
+
+  if (token) {
+    if (state.token !== token || !state.isAuthenticated) {
+      state.setAuth({ user: state.user, token });
+    }
+    return;
+  }
+
+  if (state.isAuthenticated) {
+    state.logout();
+  }
+}
+
 export const useAuthStore = create(
   persist(
     (set) => ({
@@ -14,7 +30,7 @@ export const useAuthStore = create(
       setAuth: ({ user, token }) =>
         set(() => {
           setAdminToken(token);
-          return { user, token, isAuthenticated: true };
+          return { user, token, isAuthenticated: Boolean(token) };
         }),
       logout: () =>
         set(() => {
@@ -25,17 +41,26 @@ export const useAuthStore = create(
     }),
     {
       name: "ka-auth-storage",
+      partialize: (state) => ({ user: state.user }),
       onRehydrateStorage: () => (state) => {
-        if (state?.token) {
-          setAdminToken(state.token);
+        const token = getAdminToken();
+        if (token) {
+          state?.setAuth({ user: state?.user ?? null, token });
         } else {
-          const token = getAdminToken();
-          if (token) {
-            state?.setAuth({ user: state?.user ?? null, token });
-          }
+          state?.logout();
         }
         state?.setHydrated(true);
       },
     }
   )
 );
+
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (event) => {
+    if (event.key === "ka-auth-storage") {
+      syncAuthFromCookie();
+    }
+  });
+
+  window.addEventListener("focus", syncAuthFromCookie);
+}

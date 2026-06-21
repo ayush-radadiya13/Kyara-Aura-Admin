@@ -1,15 +1,20 @@
 "use client";
 
 import axios from "axios";
-import { getAdminToken } from "@/utils/localtoken";
+import { useAuthStore } from "@/store/auth-store";
+import { clearAdminToken, getAdminToken } from "@/utils/localtoken";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE || "https://kayraaura.up.railway.app";
 
-function redirectToLogin() {
-  if (typeof window !== "undefined") {
-    window.location.assign("/login");
-  }
+function handleUnauthorized(requestUrl = "") {
+  if (typeof window === "undefined") return;
+  if (requestUrl.includes("login")) return;
+  if (window.location.pathname === "/login") return;
+
+  clearAdminToken();
+  useAuthStore.getState().logout();
+  window.location.assign("/login");
 }
 
 export const customAxios = axios.create({
@@ -31,7 +36,7 @@ customAxios.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      redirectToLogin();
+      handleUnauthorized(error.config?.url || "");
     }
     return Promise.reject(error);
   }

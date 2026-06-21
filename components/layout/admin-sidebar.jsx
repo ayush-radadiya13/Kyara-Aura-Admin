@@ -62,7 +62,7 @@ function SidebarHeaderSection() {
               isCollapsed && "text-center text-sm"
             )}
           >
-            {isCollapsed ? "KA" : "Kyara Aura"}
+            {isCollapsed ? "KA" : "Kayra Aura"}
           </h2>
           <p
             className={cn(
@@ -158,7 +158,7 @@ export function AdminSidebar({ onNavigate }) {
                 Admin User
               </p>
               <p className="truncate text-xs text-sidebar-foreground/70">
-                admin@kyaraaura.com
+                admin@kayraaura.com
               </p>
             </div>
           </div>

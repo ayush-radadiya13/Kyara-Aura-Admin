@@ -66,7 +66,7 @@ export default function LoginPage() {
         <div className="my-4 flex justify-center">
           <Image
             src="/assets/ka-logo.png"
-            alt="Kyara Aura"
+            alt="Kayra Aura"
             width={260}
             height={260}
             priority

@@ -74,6 +74,41 @@ export function getPaymentStatusClass(status) {
   return "bg-gray-100 text-gray-700 hover:bg-gray-100";
 }
 
+export function getDeliveryStatusClass(status) {
+  const normalizedStatus = String(status || "").toLowerCase();
+
+  if (["delivered"].includes(normalizedStatus)) {
+    return "bg-green-100 text-green-700 hover:bg-green-100";
+  }
+
+  if (
+    ["in_transit", "manifested", "pickup_scheduled", "shipped"].includes(
+      normalizedStatus
+    )
+  ) {
+    return "bg-blue-100 text-blue-700 hover:bg-blue-100";
+  }
+
+  if (["pending", "not_created"].includes(normalizedStatus)) {
+    return "bg-yellow-100 text-yellow-700 hover:bg-yellow-100";
+  }
+
+  if (["cancelled", "failed", "returned"].includes(normalizedStatus)) {
+    return "bg-red-100 text-red-700 hover:bg-red-100";
+  }
+
+  return "bg-gray-100 text-gray-700 hover:bg-gray-100";
+}
+
+export function getOrderDeliveryStatus(order) {
+  return (
+    order?.shipment?.shipment_status ||
+    order?.shipment_status ||
+    order?.shipping_status ||
+    ""
+  );
+}
+
 export function isCodOrder(order) {
   const checkoutType = String(order?.checkout_type || "").toLowerCase();
   const paymentMethod = String(order?.payment_method || "").toLowerCase();

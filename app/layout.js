@@ -10,7 +10,7 @@ const poppins = Poppins({
 });
 
 export const metadata = {
-  title: "Kyara Aura Admin",
+  title: "Kayra Aura Admin",
   description: "Modern premium admin panel",
 };
 
