@@ -8,9 +8,14 @@ export const defaultWebSettings = {
   instagram_url: "",
   facebook_url: "",
   whatsapp_url: "",
+  youtube_url: "",
   buy_two_get_one_free_enabled: false,
   first_order_discount_amount: 0,
   online_payment_discount_percent: 0,
+  offer_line1: "",
+  offer_line2: "",
+  offer_line3: "",
+  offer_line4: "",
 };
 
 function toNumber(value, fallback = 0) {
@@ -102,7 +107,16 @@ export function normalizeWebSettings(settings) {
         settings?.onlinePaymentDiscountPercent,
       0
     ),
+    offer_line1: settings?.offer_line1 ?? settings?.offerLine1 ?? "",
+    offer_line2: settings?.offer_line2 ?? settings?.offerLine2 ?? "",
+    offer_line3: settings?.offer_line3 ?? settings?.offerLine3 ?? "",
+    offer_line4: settings?.offer_line4 ?? settings?.offerLine4 ?? "",
   };
+}
+
+function toNullableString(value) {
+  const trimmed = String(value ?? "").trim();
+  return trimmed || null;
 }
 
 export function buildWebSettingsPayload(settings) {
@@ -121,6 +135,10 @@ export function buildWebSettingsPayload(settings) {
       settings.online_payment_discount_percent,
       0
     ),
+    offer_line1: toNullableString(settings.offer_line1),
+    offer_line2: toNullableString(settings.offer_line2),
+    offer_line3: toNullableString(settings.offer_line3),
+    offer_line4: toNullableString(settings.offer_line4),
   };
 
   if (settings.youtube_url?.trim()) {

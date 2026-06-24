@@ -83,7 +83,7 @@ export default function CreateProductPage() {
         </div>
       </div>
 
-      <div>
+      <div className="pb-8">
         <ProductForm
           mode="create"
           loading={loading}

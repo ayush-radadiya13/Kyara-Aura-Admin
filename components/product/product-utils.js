@@ -117,9 +117,9 @@ export function normalizeProduct(item) {
     ideal_for: item?.ideal_for ?? item?.idealFor ?? "",
     package_contents: item?.package_contents ?? item?.packageContents ?? "",
     is_active: normalizeBoolean(item?.is_active ?? item?.status),
-    track_stock: normalizeBoolean(item?.track_stock),
     is_collection: normalizeBoolean(item?.is_collection ?? item?.add_collection),
     images: normalizeProductImages(item),
+    video: item?.video ?? item?.video_url ?? "",
     sizes: (item?.sizes ?? []).map((size) => ({
       size_id: resolveProductSizeId(size),
       size_text: size?.size_text ?? size?.size?.name ?? size?.name ?? "",
@@ -187,7 +187,6 @@ export function buildProductPayload(
         ? null
         : toNumberOrValue(payload.weight_grams),
     is_active: Boolean(payload.is_active),
-    track_stock: Boolean(payload.track_stock),
     is_collection: Boolean(payload.is_collection ?? payload.add_collection),
     brand: payload.brand ?? "",
     base_material: payload.base_material ?? "",
@@ -205,5 +204,6 @@ export function buildProductPayload(
         price: toNumberOrValue(size.price ?? 0),
       })),
     image: images,
+    video: payload.video ?? "",
   };
 }

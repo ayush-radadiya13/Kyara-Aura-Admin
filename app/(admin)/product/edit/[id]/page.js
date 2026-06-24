@@ -99,7 +99,7 @@ export default function EditProductPage() {
         </div>
       </div>
 
-      <div >
+      <div className="pb-8">
         {isLoading ? (
           <div className="flex min-h-48 items-center justify-center">
             <Loader2 className="size-6 animate-spin text-primary" />

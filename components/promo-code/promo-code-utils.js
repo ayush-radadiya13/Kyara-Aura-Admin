@@ -104,3 +104,64 @@ export function buildPromoCodeSettingsPayload(settings) {
       })
   );
 }
+
+export function formatDateTime(value) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+export function formatCurrency(value) {
+  if (value === undefined || value === null || value === "") return "-";
+
+  const numberValue = Number(value);
+  if (Number.isNaN(numberValue)) return value;
+
+  return numberValue.toLocaleString("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  });
+}
+
+export function extractScratchCardCouponsList(response) {
+  const candidate =
+    response?.data?.data ||
+    response?.data?.results ||
+    response?.data?.coupons ||
+    response?.data?.scratch_card_coupons ||
+    response?.data?.scratchCardCoupons ||
+    response?.data ||
+    response?.results ||
+    response?.coupons ||
+    response?.scratch_card_coupons ||
+    response?.scratchCardCoupons ||
+    [];
+
+  const items = Array.isArray(candidate) ? candidate : [];
+  const meta =
+    response?.data?.meta ||
+    response?.meta || {
+      total: items.length,
+    };
+
+  return { items, meta };
+}
+
+export function normalizeScratchCardCoupon(item) {
+  return {
+    id: item?.id ?? item?._id ?? null,
+    code: item?.code ?? "",
+    discount_percent: item?.discount_percent ?? 0,
+    discount_amount: item?.discount_amount ?? 0,
+    is_redeemed: Boolean(item?.is_redeemed),
+    redeemed_at: item?.redeemed_at ?? null,
+    created_at: item?.created_at ?? null,
+  };
+}

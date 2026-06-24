@@ -6,7 +6,7 @@ export default function PromoCodePage() {
     <section>
       <PageHeader
         title="Promo Code"
-        description="Manage scratch card promo code settings and discount rules."
+        description="Manage scratch card settings and view generated promo codes."
       />
 
       <PromoCodeManager />

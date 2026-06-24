@@ -7,7 +7,7 @@ import { MonthlySalesChart } from "@/components/dashboard/monthly-sales-chart";
 import { PaymentMethodChart } from "@/components/dashboard/payment-method-chart";
 import { TopProductsChart } from "@/components/dashboard/top-products-chart";
 import { TotalCustomersCard } from "@/components/dashboard/total-customers-card";
-import { WeeklyOrderStatusChart } from "@/components/dashboard/weekly-order-status-chart";
+import { MonthlyOrderStatusChart } from "@/components/dashboard/monthly-order-status-chart";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 
@@ -31,14 +31,20 @@ export function DashboardOverview() {
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <TotalCustomersCard />
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-stretch">
+          <div className="flex min-w-0 flex-1">
+            <TotalCustomersCard />
+          </div>
+          <div className="min-w-0 flex-1">
+            <PaymentMethodChart />
+          </div>
+        </div>
         <MonthlySalesChart />
-        <PaymentMethodChart />
       </div>
 
       <div className="mt-4">
-        <WeeklyOrderStatusChart />
+        <MonthlyOrderStatusChart />
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">

@@ -36,25 +36,9 @@ export function getCategoryColumns(loading, offset = 0) {
     {
       accessorKey: "name",
       header: "Name",
-      meta: { width: "18%" },
-      cell: ({ row }) => (
-        <span className="font-medium">{row.getValue("name")}</span>
-      ),
-    },
-    {
-      accessorKey: "slug",
-      header: "Slug",
-      meta: { width: "16%" },
-      cell: ({ row }) => (
-        <span>{row.getValue("slug") || "-"}</span>
-      ),
-    },
-    {
-      accessorKey: "description",
-      header: "Description",
       meta: { width: "auto" },
       cell: ({ row }) => (
-        <span>{row.getValue("description")}</span>
+        <span className="font-medium">{row.getValue("name")}</span>
       ),
     },
     {

@@ -18,16 +18,13 @@ export function TotalCustomersCard() {
   const isPositive = monthChange >= 0;
 
   return (
-    <Card className="panel-shadow rounded-2xl border-border/70 transition-all duration-300 hover:-translate-y-0.5">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+    <Card className="panel-shadow flex h-full w-full flex-col rounded-2xl border-border/70 transition-all duration-300 hover:-translate-y-0.5">
+      <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           Total Customers
         </CardTitle>
-        <div className="rounded-full bg-secondary/40 p-2 text-primary">
-          <Users className="size-4" />
-        </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-1 flex-col justify-between">
         {isLoading ? (
           <div className="space-y-3">
             <Skeleton className="h-9 w-24" />
@@ -37,7 +34,12 @@ export function TotalCustomersCard() {
           <p className="text-sm text-muted-foreground">Failed to load customer stats.</p>
         ) : (
           <>
-            <p className="text-3xl font-semibold tracking-tight">{formatNumber(total)}</p>
+            <div className="flex items-center gap-3">
+              <div className="rounded-full bg-primary/10 p-3 text-primary">
+                <Users className="size-6" />
+              </div>
+              <p className="text-3xl font-semibold tracking-tight">{formatNumber(total)}</p>
+            </div>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-muted/50 px-3 py-2">
                 <p className="text-xs text-muted-foreground">This month</p>

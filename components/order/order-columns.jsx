@@ -16,8 +16,6 @@ import {
   getOrderDeliveryStatus,
   getOrderStatusClass,
   getPaymentStatusClass,
-  getReturnDisplayStatus,
-  getReturnStatusClass,
   hasOrderWaybill,
 } from "./order-utils";
 
@@ -32,6 +30,7 @@ export function getOrderColumns(loading, shipmentActions = {}) {
     actionOrderId,
     actionType,
     selectedOrderIds = [],
+    downloadedLabelOrderIds = [],
     onToggleOrderSelection,
     bulkSelectionLimit = BULK_LABEL_DOWNLOAD_LIMIT,
   } = shipmentActions;
@@ -55,6 +54,9 @@ export function getOrderColumns(loading, shipmentActions = {}) {
           actionOrderId === orderId && actionType === "cancel";
         const isDownloadingLabel =
           actionOrderId === orderId && actionType === "download-label";
+        const isLabelDownloaded = downloadedLabelOrderIds.includes(
+          Number(orderId)
+        );
 
         return (
           <div className="flex justify-start items-center gap-1">
@@ -118,12 +120,16 @@ export function getOrderColumns(loading, shipmentActions = {}) {
                       {isDownloadingLabel ? (
                         <Loader2 className="size-4 animate-spin" />
                       ) : (
-                        <Download className="size-4" />
+                        <Download
+                          className={`size-4 ${isLabelDownloaded ? "text-green-600" : ""}`}
+                        />
                       )}
                     </Button>
                   }
                 />
-                <TooltipContent>Download Label</TooltipContent>
+                <TooltipContent>
+                  {isLabelDownloaded ? "Label Downloaded" : "Download Label"}
+                </TooltipContent>
               </Tooltip>
             ) : null}
             <Button
@@ -207,25 +213,6 @@ export function getOrderColumns(loading, shipmentActions = {}) {
 
         return (
           <Badge className={getDeliveryStatusClass(status)}>
-            {formatLabel(status)}
-          </Badge>
-        );
-      },
-    },
-    {
-      id: "return_status",
-      header: "Return Status",
-      meta: { width: "150px" },
-      accessorFn: (row) => getReturnDisplayStatus(row),
-      cell: ({ row }) => {
-        const status = getReturnDisplayStatus(row.original);
-
-        if (!status) {
-          return <span className="text-muted-foreground">-</span>;
-        }
-
-        return (
-          <Badge className={getReturnStatusClass(status)}>
             {formatLabel(status)}
           </Badge>
         );

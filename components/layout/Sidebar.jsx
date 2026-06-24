@@ -17,7 +17,8 @@ import { SidebarNav } from "./sidebar-nav";
 
 export function Sidebar() {
   const direction = useDirectionStore((s) => s.direction);
-  const { isMobile, setOpenMobile } = useSidebar();
+  const { isMobile, setOpenMobile, state } = useSidebar();
+  const isCollapsed = state === "collapsed";
 
   return (
     <SidebarRoot
@@ -29,15 +30,23 @@ export function Sidebar() {
       )}
     >
       <SidebarHeader
-        className="h-14 shrink-0 justify-center overflow-hidden border-b border-sidebar-border p-0"
+        className={cn(
+          "shrink-0 justify-center overflow-hidden border-b border-sidebar-border",
+          isCollapsed ? "h-12 p-1" : "h-16 px-3 py-2"
+        )}
       >
         <Image
-          src="/assets/ka-bg.png"
+          src="/assets/ka-logo.png"
           alt="Kayra Aura"
-          width={1024}
-          height={683}
+          width={1064}
+          height={200}
           priority
-          className="h-full w-full object-contain object-center"
+          className={cn(
+            "h-full w-full",
+            isCollapsed
+              ? "object-cover object-center"
+              : "object-contain object-center"
+          )}
         />
       </SidebarHeader>
 

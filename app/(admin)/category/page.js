@@ -13,13 +13,6 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useCrudMutation } from "@/hooks/admin/module/use-crud-mutation";
 import { useCategories } from "@/hooks/admin/module/use-categories";
 import { ADMIN_API_ROUTES } from "@/lib/routes";
@@ -30,17 +23,11 @@ export default function CategoryPage() {
   const queryClient = useQueryClient();
   const [actionLoading, setActionLoading] = useState(false);
   const [categoryToDeleteId, setCategoryToDeleteId] = useState(null);
-  const { search, isActiveFilter, offset, limit, setSearch, setIsActiveFilter, setPagination } =
-    useCategoryStore();
+  const { search, offset, limit, setSearch, setPagination } = useCategoryStore();
 
   const page = Math.floor(offset / limit) + 1;
 
-  const { data, isLoading, isFetching, refetch } = useCategories(
-    page,
-    limit,
-    search,
-    isActiveFilter
-  );
+  const { data, isLoading, isFetching, refetch } = useCategories(page, limit, search, "all");
 
   const categories = useMemo(
     () => (data?.data || data?.results || []).map(normalizeCategory),
@@ -108,20 +95,6 @@ export default function CategoryPage() {
           </div>
         }
       />
-
-      <div className="mb-4 flex items-center gap-3">
-        <span className="text-sm font-medium text-muted-foreground">Status:</span>
-        <Select value={isActiveFilter} onValueChange={setIsActiveFilter}>
-          <SelectTrigger className="h-10 w-[180px]">
-            <SelectValue placeholder="All categories" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="true">Active</SelectItem>
-            <SelectItem value="false">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
 
       {!tableLoading && categories.length === 0 && !search.trim() ? (
         <EmptyState

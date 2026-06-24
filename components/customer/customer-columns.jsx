@@ -8,7 +8,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { formatCurrency, formatDateTime } from "./customer-utils";
+import { formatCurrency, formatDateTime, formatGender } from "./customer-utils";
 
 export function getCustomerColumns(loading, customerActions = {}) {
   const { onBanUser, onUnbanUser, actionUserId, actionType } = customerActions;
@@ -39,6 +39,12 @@ export function getCustomerColumns(loading, customerActions = {}) {
       header: "Phone",
       meta: { width: "140px" },
       cell: ({ row }) => <span>{row.getValue("phone") || "-"}</span>,
+    },
+    {
+      accessorKey: "gender",
+      header: "Gender",
+      meta: { width: "110px" },
+      cell: ({ row }) => <span>{formatGender(row.getValue("gender"))}</span>,
     },
     {
       accessorKey: "is_banned",

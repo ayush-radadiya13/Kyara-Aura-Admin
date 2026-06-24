@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
 
 const initialFilters = {
   search: "",
@@ -15,7 +16,7 @@ const initialFilters = {
 const initialState = {
   ...initialFilters,
   offset: 0,
-  limit: 15,
+  limit: DEFAULT_PAGE_LIMIT,
 };
 
 export const useProductStore = create((set) => ({

@@ -56,7 +56,7 @@ export const Pagination = ({
   const pages = buildPageNumbers();
 
   return (
-    <div className="mt-0 mb-5 flex w-full flex-col gap-4 bg-white px-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mt-0 flex w-full flex-col gap-4 bg-white px-4 pb-2 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-600">Show:</span>

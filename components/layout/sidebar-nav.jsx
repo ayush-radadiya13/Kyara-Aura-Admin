@@ -7,11 +7,12 @@ import {
   BadgePercent,
   ChevronDown,
   ChevronRight,
+  FolderTree,
   LayoutDashboard,
   Package,
+  RotateCcw,
   Settings,
   ShoppingBag,
-  Users,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -36,8 +37,8 @@ const links = {
   dashboard: "/dashboard",
   category: "/category",
   products: "/product",
-  customers: "/customers",
   orders: "/orders",
+  returnOrders: "/return-orders",
   promoCode: "/promo-code",
   settings: "/settings",
   settingsWeb: "/settings/web-settings",
@@ -48,6 +49,11 @@ const links = {
 const orderTypeLinks = [
   { label: "Cash on Delivery", href: "/orders?type=cod", type: "cod" },
   { label: "Online Payment", href: "/orders?type=online", type: "online" },
+];
+
+const returnOrderTypeLinks = [
+  { label: "Cash on Delivery", href: "/return-orders?type=cod", type: "cod" },
+  { label: "Online Payment", href: "/return-orders?type=online", type: "online" },
 ];
 
 function isRouteActive(pathname, href) {
@@ -65,10 +71,13 @@ export function SidebarNav({
   const orderType = searchParams.get("type");
   const collapsed = !isMobile && state === "collapsed";
   const ordersActive = isRouteActive(pathname, links.orders);
+  const returnOrdersActive = isRouteActive(pathname, links.returnOrders);
   const settingsActive = isRouteActive(pathname, links.settings);
   const [ordersOpen, setOrdersOpen] = React.useState(ordersActive);
+  const [returnOrdersOpen, setReturnOrdersOpen] = React.useState(returnOrdersActive);
   const [settingsOpen, setSettingsOpen] = React.useState(settingsActive);
   const effectiveOrdersOpen = ordersActive || ordersOpen;
+  const effectiveReturnOrdersOpen = returnOrdersActive || returnOrdersOpen;
   const effectiveSettingsOpen = settingsActive || settingsOpen;
 
   const topButtonClass = (active) =>
@@ -125,6 +134,34 @@ export function SidebarNav({
         </SidebarMenuItem>
 
         <SidebarMenuItem>
+          <SidebarMenuButton
+            render={<Link href={links.category} onClick={onNavigate} />}
+            isActive={isRouteActive(pathname, links.category)}
+            tooltip={enableTooltips ? "Category" : undefined}
+            className={topButtonClass(isRouteActive(pathname, links.category))}
+          >
+            <FolderTree aria-hidden />
+            <span className={cn("truncate", collapsed && "sr-only")}>
+              Category
+            </span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            render={<Link href={links.products} onClick={onNavigate} />}
+            isActive={isRouteActive(pathname, links.products)}
+            tooltip={enableTooltips ? "Products" : undefined}
+            className={topButtonClass(isRouteActive(pathname, links.products))}
+          >
+            <Package aria-hidden />
+            <span className={cn("truncate", collapsed && "sr-only")}>
+              Products
+            </span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+
+        <SidebarMenuItem>
           {collapsed ? (
             <SidebarMenuButton
               render={<Link href={links.orders} onClick={onNavigate} />}
@@ -173,45 +210,51 @@ export function SidebarNav({
         </SidebarMenuItem>
 
         <SidebarMenuItem>
-          <SidebarMenuButton
-            render={<Link href={links.products} onClick={onNavigate} />}
-            isActive={isRouteActive(pathname, links.products)}
-            tooltip={enableTooltips ? "Products" : undefined}
-            className={topButtonClass(isRouteActive(pathname, links.products))}
-          >
-            <Package aria-hidden />
-            <span className={cn("truncate", collapsed && "sr-only")}>
-              Products
-            </span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            render={<Link href={links.customers} onClick={onNavigate} />}
-            isActive={isRouteActive(pathname, links.customers)}
-            tooltip={enableTooltips ? "Customers" : undefined}
-            className={topButtonClass(isRouteActive(pathname, links.customers))}
-          >
-            <Users aria-hidden />
-            <span className={cn("truncate", collapsed && "sr-only")}>
-              Customers
-            </span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            render={<Link href={links.category} onClick={onNavigate} />}
-            isActive={isRouteActive(pathname, links.category)}
-            tooltip={enableTooltips ? "Category" : undefined}
-            className={topButtonClass(isRouteActive(pathname, links.category))}
-          >
-            <Package aria-hidden />
-            <span className={cn("truncate", collapsed && "sr-only")}>
-              Category
-            </span>
-          </SidebarMenuButton>
+          {collapsed ? (
+            <SidebarMenuButton
+              render={<Link href={`${links.returnOrders}?type=online`} onClick={onNavigate} />}
+              isActive={returnOrdersActive}
+              tooltip={enableTooltips ? "Return Orders" : undefined}
+              className={topButtonClass(returnOrdersActive)}
+            >
+              <RotateCcw aria-hidden />
+              <span className="sr-only">Return Orders</span>
+            </SidebarMenuButton>
+          ) : (
+            <Collapsible open={effectiveReturnOrdersOpen} onOpenChange={setReturnOrdersOpen}>
+              <CollapsibleTrigger
+                render={
+                  <SidebarMenuButton
+                    isActive={returnOrdersActive}
+                    className={topButtonClass(returnOrdersActive)}
+                  >
+                    <RotateCcw aria-hidden />
+                    <span className="truncate">Return Orders</span>
+                    {effectiveReturnOrdersOpen ? (
+                      <ChevronDown className="ms-auto size-4" aria-hidden />
+                    ) : (
+                      <ChevronRight className="ms-auto size-4" aria-hidden />
+                    )}
+                  </SidebarMenuButton>
+                }
+              />
+              <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+                <SidebarMenuSub className="mx-3.5 mt-1 gap-1 border-sidebar-border px-2.5 py-0.5">
+                  {returnOrderTypeLinks.map((item) => (
+                    <SidebarMenuSubItem key={item.type}>
+                      <SidebarMenuSubButton
+                        render={<Link href={item.href} onClick={onNavigate} />}
+                        isActive={returnOrdersActive && orderType === item.type}
+                        className={subLinkClass(returnOrdersActive && orderType === item.type)}
+                      >
+                        <span>{item.label}</span>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  ))}
+                </SidebarMenuSub>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </SidebarMenuItem>
 
         <SidebarMenuItem>

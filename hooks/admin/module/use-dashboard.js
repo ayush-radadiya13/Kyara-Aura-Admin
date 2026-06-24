@@ -7,7 +7,7 @@ import {
   getPaymentMethodDistributionService,
   getTopProductsService,
   getTotalCustomersService,
-  getWeeklyOrderStatusService,
+  getMonthlyOrderStatusService,
 } from "@/services/dashboard-service";
 
 const dashboardQueryOptions = {
@@ -55,10 +55,10 @@ export function useGenderDistribution() {
   });
 }
 
-export function useWeeklyOrderStatus() {
+export function useMonthlyOrderStatus() {
   return useQuery({
-    queryKey: ["dashboard", "weekly-order-status"],
-    queryFn: getWeeklyOrderStatusService,
+    queryKey: ["dashboard", "monthly-order-status"],
+    queryFn: getMonthlyOrderStatusService,
     ...dashboardQueryOptions,
   });
 }

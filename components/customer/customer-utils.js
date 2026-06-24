@@ -27,6 +27,14 @@ export function formatDateTime(value) {
   });
 }
 
+export function formatGender(value) {
+  if (!value) return "-";
+
+  return String(value)
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 export function normalizeCustomer(customer) {
   const totalOrders =
     customer?.total_orders ?? customer?.orders_count ?? customer?.orders ?? customer?.order_count;
@@ -39,6 +47,7 @@ export function normalizeCustomer(customer) {
     name: customer?.name ?? customer?.full_name ?? customer?.username ?? "-",
     email: customer?.email ?? "-",
     phone: customer?.phone ?? customer?.mobile ?? customer?.phone_number ?? "-",
+    gender: customer?.gender ?? null,
     is_banned: Boolean(customer?.is_banned),
     banned_until: customer?.banned_until ?? null,
     total_orders: totalOrders ?? 0,

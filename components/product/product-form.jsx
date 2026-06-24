@@ -45,11 +45,17 @@ const defaultValues = {
   ideal_for: "",
   package_contents: "",
   is_active: true,
-  track_stock: false,
   is_collection: false,
   images: [],
-  sizes: [],
+  video: "",
+  sizes: [{ size_id: "", quantity: "", price: "" }],
 };
+
+const MAX_VIDEO_SIZE = 10 * 1024 * 1024;
+const MAX_IMAGES = 4;
+const MAX_VIDEOS = 1;
+const MAX_MEDIA = 5;
+const MEDIA_PREVIEW_CLASS = "h-[100px] w-[100px] rounded border object-cover";
 
 const compactInputClass = "h-10 px-3 py-2 text-sm";
 const compactSelectClass = "h-10 w-full px-3 py-2 text-sm";
@@ -221,18 +227,18 @@ export function ProductForm({
   const watchedCategoryId = useWatch({ control: form.control, name: "category_id" });
   const watchedIdealFor = useWatch({ control: form.control, name: "ideal_for" });
   const watchedIsActive = useWatch({ control: form.control, name: "is_active" });
-  const watchedTrackStock = useWatch({ control: form.control, name: "track_stock" });
   const watchedIsCollection = useWatch({ control: form.control, name: "is_collection" });
   const watchedName = useWatch({ control: form.control, name: "name" });
   const watchedSizes = useWatch({ control: form.control, name: "sizes" });
   const currentSlug = useWatch({ control: form.control, name: "slug" });
 
   const [previewImages, setPreviewImages] = useState([]);
+  const [previewVideo, setPreviewVideo] = useState("");
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const selectedCategoryId = String(watchedCategoryId || "");
   const selectedIdealFor = String(watchedIdealFor || "");
   const isActive = Boolean(watchedIsActive);
-  const trackStock = Boolean(watchedTrackStock);
   const isCollection = Boolean(watchedIsCollection);
   const normalizedCategoryOptions = useMemo(
     () => normalizeSelectOptions(categoryOptions),
@@ -319,15 +325,17 @@ export function ProductForm({
       ideal_for: idealFor,
       package_contents: initialValues.package_contents || "",
       is_active: Boolean(initialValues.is_active),
-      track_stock: Boolean(initialValues.track_stock),
       is_collection: Boolean(initialValues.is_collection ?? initialValues.add_collection),
       images: initialValues.images || initialValues.image || [],
+      video: initialValues.video || initialValues.video_url || "",
       sizes:
-          initialValues.sizes?.map((size) => ({
-            size_id: resolveInitialSizeId(size, normalizedSizeOptions),
-            quantity: size.quantity ?? "",
-            price: size.price ?? "",
-          })) || [],
+          initialValues.sizes?.length > 0
+            ? initialValues.sizes.map((size) => ({
+                size_id: resolveInitialSizeId(size, normalizedSizeOptions),
+                quantity: size.quantity ?? "",
+                price: size.price ?? "",
+              }))
+            : [{ size_id: "", quantity: "", price: "" }],
     });
 
     setTimeout(() => {
@@ -345,6 +353,7 @@ export function ProductForm({
 
     const previewTimer = setTimeout(() => {
       setPreviewImages(previewImages);
+      setPreviewVideo(initialValues.video || initialValues.video_url || "");
     }, 0);
 
     return () => clearTimeout(previewTimer);
@@ -382,51 +391,98 @@ export function ProductForm({
     }
   }, [watchedName, currentSlug, mode, form, slugEditedManually]);
 
-  const handleImageUpload = async (event) => {
-    const files = Array.from(event.target.files);
-    if (!files.length) {
-      event.target.value = "";
+  const handleMediaUpload = async (event) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = "";
+
+    if (!files.length) return;
+
+    const imageFiles = files.filter((file) => file.type?.startsWith("image/"));
+    const videoFiles = files.filter((file) => file.type?.startsWith("video/"));
+    const unsupportedFiles = files.filter(
+      (file) => !file.type?.startsWith("image/") && !file.type?.startsWith("video/")
+    );
+
+    if (unsupportedFiles.length) {
+      toast.error("Only image and video files are allowed.");
       return;
     }
 
-    if (previewImages.length + files.length > 5) {
-      toast.error("Maximum 5 images allowed per product.");
-      event.target.value = "";
+    if (videoFiles.length > MAX_VIDEOS) {
+      toast.error(`Only ${MAX_VIDEOS} video is allowed per product.`);
       return;
     }
 
-    const oversizedFile = files.find((file) => file.size > 2 * 1024 * 1024);
-    if (oversizedFile) {
-      toast.error(`${oversizedFile.name} exceeds the 2 MB image size limit.`);
-      event.target.value = "";
+    if (videoFiles.length && previewVideo) {
+      toast.error(`Maximum ${MAX_VIDEOS} video allowed per product.`);
       return;
     }
 
-    setIsUploadingImages(true);
+    if (imageFiles.length && previewImages.length + imageFiles.length > MAX_IMAGES) {
+      toast.error(`Maximum ${MAX_IMAGES} images allowed per product.`);
+      return;
+    }
+
+    const currentMediaCount = previewImages.length + (previewVideo ? 1 : 0);
+    const incomingMediaCount = imageFiles.length + videoFiles.length;
+    if (currentMediaCount + incomingMediaCount > MAX_MEDIA) {
+      toast.error(`Maximum ${MAX_MEDIA} media files allowed (${MAX_IMAGES} images and ${MAX_VIDEOS} video).`);
+      return;
+    }
+
+    const oversizedImage = imageFiles.find((file) => file.size > 2 * 1024 * 1024);
+    if (oversizedImage) {
+      toast.error(`${oversizedImage.name} exceeds the 2 MB image size limit.`);
+      return;
+    }
+
+    const oversizedVideo = videoFiles.find((file) => file.size > MAX_VIDEO_SIZE);
+    if (oversizedVideo) {
+      toast.error(`${oversizedVideo.name} exceeds the 10 MB video size limit.`);
+      return;
+    }
+
+    const isUploading = imageFiles.length > 0 || videoFiles.length > 0;
+    if (!isUploading) return;
+
+    if (imageFiles.length) setIsUploadingImages(true);
+    if (videoFiles.length) setIsUploadingVideo(true);
+
     try {
-      const uploadedImages = await Promise.all(
-        files.map(async (file) => {
-          const url = await uploadMediaFile(file, "products");
+      if (imageFiles.length) {
+        const uploadedImages = await Promise.all(
+          imageFiles.map(async (file) => {
+            const url = await uploadMediaFile(file, "products");
 
-          return {
-            url,
-            preview: url,
-            name: file.name,
-            isExisting: false,
-          };
-        })
-      );
+            return {
+              url,
+              preview: url,
+              name: file.name,
+              isExisting: false,
+            };
+          })
+        );
 
-      setPreviewImages((prev) => [...prev, ...uploadedImages]);
-      form.setValue("images", [...(form.getValues("images") || []), ...uploadedImages], {
-        shouldValidate: true,
-        shouldDirty: true,
-      });
+        setPreviewImages((prev) => [...prev, ...uploadedImages]);
+        form.setValue("images", [...(form.getValues("images") || []), ...uploadedImages], {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
+      }
+
+      if (videoFiles.length) {
+        const videoUrl = await uploadMediaFile(videoFiles[0], "products");
+        setPreviewVideo(videoUrl);
+        form.setValue("video", videoUrl, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
+      }
     } catch (error) {
-      toast.error(error?.response?.data?.message || error?.message || "Image upload failed");
+      toast.error(error?.response?.data?.message || error?.message || "Media upload failed");
     } finally {
       setIsUploadingImages(false);
-      event.target.value = "";
+      setIsUploadingVideo(false);
     }
   };
 
@@ -445,7 +501,18 @@ export function ProductForm({
   };
 
   const imageCount = previewImages.length;
-  const maxImagesReached = imageCount >= 5;
+  const hasVideo = Boolean(previewVideo);
+  const isUploadingMedia = isUploadingImages || isUploadingVideo;
+  const mediaCount = imageCount + (hasVideo ? 1 : 0);
+  const maxMediaReached = mediaCount >= MAX_MEDIA;
+
+  const removeVideo = () => {
+    setPreviewVideo("");
+    form.setValue("video", "", {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  };
 
   const submitHandler = form.handleSubmit(async (values) => {
     await onSubmit(values);
@@ -489,79 +556,108 @@ export function ProductForm({
     </div>
   );
 
-  const renderImageUpload = () => (
+  const renderMediaUploadBox = () => (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <Label>Product Images</Label>
-        <span className="text-xs text-muted-foreground">{imageCount}/5 uploaded</span>
+        <span className="text-xs text-muted-foreground">
+          {imageCount}/{MAX_IMAGES} images · {hasVideo ? 1 : 0}/{MAX_VIDEOS} video · {mediaCount}/{MAX_MEDIA} total
+        </span>
       </div>
       <div
         className={`flex h-[220px] w-full rounded-lg border-2 border-dashed p-4 ${
-          maxImagesReached ? "border-gray-200 bg-gray-50 opacity-60" : "border-gray-300"
+          maxMediaReached ? "border-gray-200 bg-gray-50 opacity-60" : "border-gray-300"
         }`}
       >
         <input
           type="file"
           multiple
-          accept="image/*"
-          onChange={handleImageUpload}
+          accept="image/*,video/*"
+          onChange={handleMediaUpload}
           className="hidden"
-          id="image-upload"
-          disabled={maxImagesReached || isUploadingImages}
+          id="media-upload"
+          disabled={maxMediaReached || isUploadingMedia}
         />
         <label
-          htmlFor="image-upload"
+          htmlFor="media-upload"
           className={`flex h-full w-full flex-col items-center justify-center text-center ${
-            maxImagesReached || isUploadingImages ? "cursor-not-allowed" : "cursor-pointer"
+            maxMediaReached || isUploadingMedia ? "cursor-not-allowed" : "cursor-pointer"
           }`}
         >
-          {isUploadingImages ? (
+          {isUploadingMedia ? (
             <Loader2 className="mb-2 h-8 w-8 animate-spin text-gray-400" />
           ) : (
             <Upload className="mb-2 h-8 w-8 text-gray-400" />
           )}
           <span className="text-sm text-gray-600">
-            {isUploadingImages
-              ? "Uploading images..."
-              : maxImagesReached
-                ? "Maximum images reached"
-                : "Click to upload images"}
+            {isUploadingMedia
+              ? "Uploading media..."
+              : maxMediaReached
+                ? "Maximum media reached"
+                : "Click to upload images or video"}
           </span>
-          <span className="text-xs text-gray-500">Max 5 files, 2MB each</span>
+          <span className="text-xs text-gray-500">
+            Max {MAX_IMAGES} images (2MB each), {MAX_VIDEOS} video (10MB) — {MAX_MEDIA} total
+          </span>
         </label>
       </div>
-
-      {previewImages.length > 0 && (
-        <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-5">
-          {previewImages.map((image, index) => (
-            <div key={`${image.name}-${index}`} className="group relative">
-              <img
-                src={image.preview || image}
-                alt={image.name || `Product image ${index + 1}`}
-                className="h-20 w-full rounded border object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => removeImage(index)}
-                className="absolute -top-2 -right-2 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
       {form.formState.errors.images && (
         <p className="text-sm text-destructive">{form.formState.errors.images.message}</p>
+      )}
+      {form.formState.errors.video && (
+        <p className="text-sm text-destructive">{form.formState.errors.video.message}</p>
       )}
     </div>
   );
 
+  const renderMediaPreviews = () =>
+    previewImages.length > 0 || hasVideo ? (
+      <div className="mt-4 flex w-full flex-row gap-2">
+        {previewImages.map((image, index) => (
+          <div key={`${image.name}-${index}`} className="group relative shrink-0">
+            <img
+              src={image.preview || image}
+              alt={image.name || `Product image ${index + 1}`}
+              className={MEDIA_PREVIEW_CLASS}
+            />
+            <button
+              type="button"
+              onClick={() => removeImage(index)}
+              className="absolute -top-2 -right-2 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        ))}
+        {hasVideo ? (
+          <div className="group relative shrink-0">
+            <video
+              key={previewVideo}
+              src={previewVideo}
+              className={MEDIA_PREVIEW_CLASS}
+              muted
+              playsInline
+              preload="metadata"
+            />
+            <button
+              type="button"
+              onClick={removeVideo}
+              className="absolute -top-2 -right-2 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        ) : null}
+      </div>
+    ) : null;
+
   return (
-    <form onSubmit={submitHandler} className="space-y-4">
+    <form onSubmit={submitHandler} className="space-y-4 pb-24">
       <div className="rounded-lg border border-border bg-white p-4">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
-          {renderImageUpload()}
+          <div className="space-y-4">
+            {renderMediaUploadBox()}
+          </div>
 
           <div className="space-y-4">
             <div className="flex justify-end">
@@ -601,6 +697,7 @@ export function ProductForm({
             </div>
           </div>
         </div>
+        {renderMediaPreviews()}
       </div>
 
       <div className="rounded-lg border border-border bg-white p-4">
@@ -666,7 +763,6 @@ export function ProductForm({
             })}
           </div>
 
-          {renderSwitchField("track_stock", "Track Stock", trackStock)}
           {renderSwitchField("is_collection", "Add Collection", isCollection)}
         </div>
       </div>
@@ -803,7 +899,14 @@ export function ProductForm({
                 <SelectValue placeholder="Select Ideal For" />
               </SelectTrigger>
 
-              <SelectContent>
+              <SelectContent
+                align="start"
+                avoidCollisions={false}
+                className="w-[var(--radix-select-trigger-width)]"
+                position="popper"
+                side="bottom"
+                sideOffset={4}
+              >
                 {idealForOptions.map((option) => (
                     <SelectItem
                         key={option.value}
@@ -837,7 +940,7 @@ export function ProductForm({
         </Button>
         <Button
           type="submit"
-          disabled={loading || isUploadingImages}
+          disabled={loading || isUploadingMedia}
           className="bg-green-600 text-white hover:bg-green-600/90"
         >
           {loading ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}

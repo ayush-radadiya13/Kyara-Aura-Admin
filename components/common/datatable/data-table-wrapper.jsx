@@ -56,7 +56,8 @@ export function DataTableWrapper({
   const showToolbar = Boolean(title || onAddAction);
 
   return (
-    <div className="flex flex-col bg-white">
+    <div className="pb-40">
+      <div className="flex flex-col overflow-hidden rounded-md border bg-white">
       {showToolbar && (
         <>
           <div className="mt-4 px-6">
@@ -103,6 +104,7 @@ export function DataTableWrapper({
           onPageChangeAction?.(newOffset, newLimit);
         }}
       />
+      </div>
     </div>
   );
 }

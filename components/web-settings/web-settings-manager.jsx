@@ -64,6 +64,17 @@ function WhatsAppIcon({ className = "size-4" }) {
   );
 }
 
+function YouTubeIcon({ className = "size-4" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path
+        fill="currentColor"
+        d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"
+      />
+    </svg>
+  );
+}
+
 function SocialFieldLabel({ htmlFor, icon: Icon, label, iconClassName }) {
   return (
     <Label htmlFor={htmlFor} className="flex items-center gap-2">
@@ -75,15 +86,18 @@ function SocialFieldLabel({ htmlFor, icon: Icon, label, iconClassName }) {
 
 function WebSettingsSkeleton() {
   return (
-    <Card className="max-w-3xl border-border/70">
+    <Card className="w-full border-border/70">
       <CardHeader>
         <Skeleton className="h-5 w-36" />
         <Skeleton className="h-4 w-72" />
       </CardHeader>
-      <CardContent className="space-y-5">
-        <Skeleton className="h-24 w-48 rounded-lg" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
+      <CardContent className="space-y-6">
+        <Skeleton className="h-24 w-full max-w-xs rounded-lg" />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+        <Skeleton className="h-28 w-full" />
         <Skeleton className="h-24 w-full" />
       </CardContent>
     </Card>
@@ -179,13 +193,13 @@ export function WebSettingsManager() {
   const actionDisabled = isSaving || isUploadingLogo;
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl">
-      <Card className="border-border/70">
+    <form onSubmit={handleSubmit} className="w-full">
+      <Card className="w-full border-border/70">
         <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <CardTitle>Web Settings</CardTitle>
             <CardDescription>
-              Manage public contact details, storefront logo, and social links.
+              Manage public contact details, storefront logo, offer lines, and social links.
             </CardDescription>
           </div>
           <Button
@@ -206,11 +220,11 @@ export function WebSettingsManager() {
             Refresh
           </Button>
         </CardHeader>
-        <CardContent className="space-y-5">
+        <CardContent className="space-y-6">
           <div className="space-y-2">
             <Label>Logo</Label>
-            <div className="flex flex-col gap-4 rounded-lg border border-border p-4 sm:flex-row sm:items-center">
-              <div className="relative flex h-24 w-48 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-border bg-muted/30">
+            <div className="flex flex-col gap-4 rounded-lg border border-border p-4 lg:flex-row lg:items-center">
+              <div className="relative flex h-24 w-full max-w-xs shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-border bg-muted/30">
                 {logoPreviewUrl ? (
                   <Image
                     src={logoPreviewUrl}
@@ -257,7 +271,7 @@ export function WebSettingsManager() {
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-5 lg:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="web-settings-email">Email</Label>
               <Input
@@ -279,33 +293,86 @@ export function WebSettingsManager() {
                 disabled={actionDisabled}
               />
             </div>
+            <div className="space-y-2 lg:col-span-2">
+              <Label htmlFor="web-settings-address">Address</Label>
+              <Textarea
+                id="web-settings-address"
+                placeholder="Your full business address here"
+                value={currentValues.address}
+                onChange={(event) => updateField("address", event.target.value)}
+                disabled={actionDisabled}
+                className="min-h-28"
+              />
+            </div>
+            <div className="space-y-2 lg:col-span-2">
+              <Label htmlFor="web-settings-footer-description">Footer Description</Label>
+              <Textarea
+                id="web-settings-footer-description"
+                placeholder="Short description shown in the storefront footer"
+                value={currentValues.footer_description}
+                onChange={(event) =>
+                  updateField("footer_description", event.target.value)
+                }
+                disabled={actionDisabled}
+                className="min-h-24"
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="web-settings-address">Address</Label>
-            <Textarea
-              id="web-settings-address"
-              placeholder="Your full business address here"
-              value={currentValues.address}
-              onChange={(event) => updateField("address", event.target.value)}
-              disabled={actionDisabled}
-              className="min-h-28"
-            />
-          </div>
+          <div className="space-y-4 rounded-lg border border-border p-4">
+  <div>
+    <h3 className="text-sm font-medium">Offer Lines</h3>
+    <p className="mt-1 text-sm text-muted-foreground">
+      Short promotional messages shown on the storefront. Leave blank to hide a line.
+    </p>
+  </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="web-settings-footer-description">Footer Description</Label>
-            <Textarea
-              id="web-settings-footer-description"
-              placeholder="Short description shown in the storefront footer"
-              value={currentValues.footer_description}
-              onChange={(event) =>
-                updateField("footer_description", event.target.value)
-              }
-              disabled={actionDisabled}
-              className="min-h-24"
-            />
-          </div>
+  <div className="grid gap-4 sm:grid-cols-2">
+    <div className="space-y-2">
+      <Label htmlFor="web-settings-offer-line1">Offer Line 1</Label>
+      <Input
+        id="web-settings-offer-line1"
+        placeholder="e.g. Free shipping on orders above Rs 999"
+        value={currentValues.offer_line1}
+        onChange={(event) => updateField("offer_line1", event.target.value)}
+        disabled={actionDisabled}
+      />
+    </div>
+
+    <div className="space-y-2">
+      <Label htmlFor="web-settings-offer-line2">Offer Line 2</Label>
+      <Input
+        id="web-settings-offer-line2"
+        placeholder="e.g. Extra 10% off on online payments"
+        value={currentValues.offer_line2}
+        onChange={(event) => updateField("offer_line2", event.target.value)}
+        disabled={actionDisabled}
+      />
+    </div>
+
+    <div className="space-y-2">
+      <Label htmlFor="web-settings-offer-line3">Offer Line 3</Label>
+      <Input
+        id="web-settings-offer-line3"
+        placeholder="e.g. Buy 2 Get 1 Free on selected items"
+        value={currentValues.offer_line3}
+        onChange={(event) => updateField("offer_line3", event.target.value)}
+        disabled={actionDisabled}
+      />
+    </div>
+
+    <div className="space-y-2">
+      <Label htmlFor="web-settings-offer-line4">Offer Line 4</Label>
+      <Input
+        id="web-settings-offer-line4"
+        placeholder="e.g. First order discount available"
+        value={currentValues.offer_line4}
+        onChange={(event) => updateField("offer_line4", event.target.value)}
+        disabled={actionDisabled}
+      />
+    </div>
+  </div>
+</div>
 
           <div className="space-y-4 rounded-lg border border-border p-4">
             <div>
@@ -394,7 +461,7 @@ export function WebSettingsManager() {
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2 sm:col-span-2">
+              <div className="space-y-2">
                 <SocialFieldLabel
                   htmlFor="web-settings-instagram"
                   icon={InstagramIcon}
@@ -409,7 +476,7 @@ export function WebSettingsManager() {
                   disabled={actionDisabled}
                 />
               </div>
-              <div className="space-y-2 sm:col-span-2">
+              <div className="space-y-2">
                 <SocialFieldLabel
                   htmlFor="web-settings-facebook"
                   icon={FacebookIcon}
@@ -424,7 +491,7 @@ export function WebSettingsManager() {
                   disabled={actionDisabled}
                 />
               </div>
-              <div className="space-y-2 sm:col-span-2">
+              <div className="space-y-2">
                 <SocialFieldLabel
                   htmlFor="web-settings-whatsapp"
                   icon={WhatsAppIcon}
@@ -436,6 +503,21 @@ export function WebSettingsManager() {
                   type="url"
                   value={currentValues.whatsapp_url}
                   onChange={(event) => updateField("whatsapp_url", event.target.value)}
+                  disabled={actionDisabled}
+                />
+              </div>
+              <div className="space-y-2">
+                <SocialFieldLabel
+                  htmlFor="web-settings-youtube"
+                  icon={YouTubeIcon}
+                  label="YouTube"
+                  iconClassName="size-4 text-[#FF0000]"
+                />
+                <Input
+                  id="web-settings-youtube"
+                  type="url"
+                  value={currentValues.youtube_url}
+                  onChange={(event) => updateField("youtube_url", event.target.value)}
                   disabled={actionDisabled}
                 />
               </div>

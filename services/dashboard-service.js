@@ -30,9 +30,9 @@ export async function getGenderDistributionService() {
   return data;
 }
 
-export async function getWeeklyOrderStatusService() {
+export async function getMonthlyOrderStatusService() {
   const { data } = await customAxios.get(
-    ADMIN_API_ROUTES.DASHBOARD_WEEKLY_ORDER_STATUS
+    ADMIN_API_ROUTES.DASHBOARD_MONTHLY_ORDER_STATUS
   );
   return data;
 }

@@ -28,9 +28,9 @@ export const productSchema = z.object({
   ideal_for: z.string().trim().optional(),
   package_contents: z.string().trim().optional(),
   is_active: z.boolean(),
-  track_stock: z.boolean(),
   is_collection: z.boolean().optional(),
-  images: z.array(z.any()).max(5, "Maximum 5 images allowed").optional(),
+  images: z.array(z.any()).max(4, "Maximum 4 images allowed").optional(),
+  video: z.string().trim().optional(),
   sizes: z.preprocess(
     (val) => (Array.isArray(val) ? val.filter((s) => String(s?.size_id || "").trim()) : []),
     z

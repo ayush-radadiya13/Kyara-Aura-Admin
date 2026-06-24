@@ -341,6 +341,7 @@ export default function OrdersPage() {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [shipmentAction, setShipmentAction] = useState(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
+  const [downloadedLabelOrderIds, setDownloadedLabelOrderIds] = useState([]);
   const searchParams = useSearchParams();
   const {
     orderViews,
@@ -445,9 +446,22 @@ export default function OrdersPage() {
       onSettled: () => setShipmentAction(null),
     });
 
+  const markLabelsDownloaded = useCallback((orderIds) => {
+    setDownloadedLabelOrderIds((current) => {
+      const next = new Set(current);
+
+      orderIds.forEach((id) => {
+        const numericId = Number(id);
+        if (numericId) next.add(numericId);
+      });
+
+      return [...next];
+    });
+  }, []);
+
   const { mutate: downloadOrderShipmentLabel, isPending: isDownloadingLabel } =
     useDownloadOrderShipmentLabel({
-      onSuccess: ({ blob, filename }) => {
+      onSuccess: ({ blob, filename }, orderId) => {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement("a");
 
@@ -457,6 +471,7 @@ export default function OrdersPage() {
         link.click();
         link.remove();
         window.URL.revokeObjectURL(url);
+        markLabelsDownloaded([orderId]);
       },
       onError: (error) =>
         toast.error(error?.response?.data?.message || "Download label failed"),
@@ -467,7 +482,7 @@ export default function OrdersPage() {
     mutate: bulkDownloadOrderShipmentLabels,
     isPending: isBulkDownloadingLabels,
   } = useBulkDownloadOrderShipmentLabels({
-    onSuccess: ({ blob, filename }) => {
+    onSuccess: ({ blob, filename }, orderIds) => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
 
@@ -477,6 +492,7 @@ export default function OrdersPage() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
+      markLabelsDownloaded(orderIds);
       toast.success("Shipment labels downloaded");
       setSelectedOrderIds([]);
     },
@@ -586,11 +602,13 @@ export default function OrdersPage() {
         actionOrderId: shipmentAction?.orderId,
         actionType: shipmentAction?.type,
         selectedOrderIds,
+        downloadedLabelOrderIds,
         onToggleOrderSelection: handleToggleOrderSelection,
         bulkSelectionLimit: BULK_LABEL_DOWNLOAD_LIMIT,
       }),
     [
       actionLoading,
+      downloadedLabelOrderIds,
       handleCancelOrder,
       handleConfirmOrder,
       handleDownloadLabel,
@@ -739,6 +757,12 @@ export default function OrdersPage() {
         onOpenChange={handleDetailsOpenChange}
         order={activeOrder}
         isLoading={isOrderDetailsLoading || isOrderDetailsFetching}
+        onCancelOrder={handleCancelOrder}
+        isCancelling={
+          isCancellingShipment &&
+          shipmentAction?.orderId === activeOrder?.id &&
+          shipmentAction?.type === "cancel"
+        }
       />
     </section>
   );

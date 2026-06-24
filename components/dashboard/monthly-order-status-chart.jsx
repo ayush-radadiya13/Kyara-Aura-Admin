@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useWeeklyOrderStatus } from "@/hooks/admin/module/use-dashboard";
+import { useMonthlyOrderStatus } from "@/hooks/admin/module/use-dashboard";
 import {
   DashboardChartCard,
   DashboardEmptyState,
@@ -24,30 +24,7 @@ import {
 
 const STATUS_KEYS = Object.keys(ORDER_STATUS_COLORS);
 
-function formatWeekLabel(weekStart, weekEnd) {
-  if (!weekStart) return "";
-
-  const start = new Date(`${weekStart}T00:00:00`);
-  const end = weekEnd ? new Date(`${weekEnd}T00:00:00`) : null;
-
-  const startLabel = start.toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-  });
-
-  if (!end || Number.isNaN(end.getTime())) {
-    return startLabel;
-  }
-
-  const endLabel = end.toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-  });
-
-  return `${startLabel} - ${endLabel}`;
-}
-
-function WeeklyStatusTooltip({ active, payload, label }) {
+function MonthlyStatusTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
 
   return (
@@ -67,39 +44,36 @@ function WeeklyStatusTooltip({ active, payload, label }) {
   );
 }
 
-export function WeeklyOrderStatusChart() {
-  const { data, isLoading, isError } = useWeeklyOrderStatus();
-  const chartData = (unwrapDashboardData(data) ?? []).map((week) => ({
-    ...week.statuses,
-    weekLabel: formatWeekLabel(week.week_start, week.week_end),
-    total: Number(week.total ?? 0),
+export function MonthlyOrderStatusChart() {
+  const { data, isLoading, isError } = useMonthlyOrderStatus();
+  const chartData = (unwrapDashboardData(data) ?? []).map((month) => ({
+    ...month.statuses,
+    label: month.label ?? month.month ?? "",
+    total: Number(month.total ?? 0),
   }));
-  const hasData = chartData.some((week) => week.total > 0);
+  const hasData = chartData.some((month) => month.total > 0);
 
   return (
     <DashboardChartCard
-      title="Weekly Order Status"
-      description="Order status breakdown for the last 8 weeks"
+      title="Monthly Order Status"
+      description="Order status breakdown for the last 12 months"
       isLoading={isLoading}
       isError={isError}
       contentClassName="pt-0"
     >
       {!hasData ? (
-        <DashboardEmptyState message="No orders recorded in the last 8 weeks." />
+        <DashboardEmptyState message="No orders recorded in the last 12 months." />
       ) : (
         <div className="h-[340px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
               <XAxis
-                dataKey="weekLabel"
+                dataKey="label"
                 tickLine={false}
                 axisLine={false}
-                tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
-                interval={0}
-                angle={-18}
-                textAnchor="end"
-                height={56}
+                tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                interval="preserveStartEnd"
               />
               <YAxis
                 tickLine={false}
@@ -107,7 +81,7 @@ export function WeeklyOrderStatusChart() {
                 tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                 allowDecimals={false}
               />
-              <Tooltip content={<WeeklyStatusTooltip />} />
+              <Tooltip content={<MonthlyStatusTooltip />} />
               <Legend
                 iconType="circle"
                 wrapperStyle={{ fontSize: 11, paddingTop: 12 }}

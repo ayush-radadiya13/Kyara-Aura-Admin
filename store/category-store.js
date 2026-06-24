@@ -1,18 +1,17 @@
 "use client";
 
 import { create } from "zustand";
+import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
 
 const initialState = {
   search: "",
-  isActiveFilter: "all",
   offset: 0,
-  limit: 10,
+  limit: DEFAULT_PAGE_LIMIT,
 };
 
 export const useCategoryStore = create((set) => ({
   ...initialState,
   setSearch: (search) => set({ search, offset: 0 }),
-  setIsActiveFilter: (isActiveFilter) => set({ isActiveFilter, offset: 0 }),
   setPagination: ({ offset, limit }) => set({ offset, limit }),
   resetCategoryView: () => set({ ...initialState }),
 }));

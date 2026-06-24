@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
 
 const initialOrderView = {
   search: "",
@@ -10,7 +11,7 @@ const initialOrderView = {
   shipment_created_from: "",
   shipment_created_to: "",
   offset: 0,
-  limit: 15,
+  limit: DEFAULT_PAGE_LIMIT,
 };
 
 const createInitialViews = () => ({
