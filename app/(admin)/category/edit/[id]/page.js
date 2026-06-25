@@ -74,7 +74,7 @@ export default function EditCategoryPage() {
         </div>
       </div>
 
-      <div className="rounded-md border border-border p-6">
+      <div className="rounded-md bg-white border border-border p-6">
         {isLoading ? (
           <div className="flex min-h-48 items-center justify-center">
             <Loader2 className="size-6 animate-spin text-primary" />
