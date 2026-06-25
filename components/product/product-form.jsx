@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
-import { Loader2, Plus, Trash2, Upload, X } from "lucide-react";
+import { Film, Loader2, Play, Plus, Trash2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,6 +46,7 @@ const defaultValues = {
   package_contents: "",
   is_active: true,
   is_collection: false,
+  review_count: 0,
   images: [],
   video: "",
   sizes: [{ size_id: "", quantity: "", price: "" }],
@@ -234,6 +235,7 @@ export function ProductForm({
 
   const [previewImages, setPreviewImages] = useState([]);
   const [previewVideo, setPreviewVideo] = useState("");
+  const [videoThumbError, setVideoThumbError] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const selectedCategoryId = String(watchedCategoryId || "");
@@ -326,6 +328,7 @@ export function ProductForm({
       package_contents: initialValues.package_contents || "",
       is_active: Boolean(initialValues.is_active),
       is_collection: Boolean(initialValues.is_collection ?? initialValues.add_collection),
+      review_count: initialValues.review_count ?? initialValues.reviews_count ?? 0,
       images: initialValues.images || initialValues.image || [],
       video: initialValues.video || initialValues.video_url || "",
       sizes:
@@ -373,6 +376,10 @@ export function ProductForm({
       });
     }
   }, [normalizedCategoryOptions, initialValues, form]);
+
+  useEffect(() => {
+    setVideoThumbError(false);
+  }, [previewVideo]);
 
   const slugEditedManually = Boolean(form.formState.dirtyFields.slug);
 
@@ -631,14 +638,31 @@ export function ProductForm({
         ))}
         {hasVideo ? (
           <div className="group relative shrink-0">
-            <video
-              key={previewVideo}
-              src={previewVideo}
-              className={MEDIA_PREVIEW_CLASS}
-              muted
-              playsInline
-              preload="metadata"
-            />
+            {videoThumbError ? (
+              <div
+                className={`${MEDIA_PREVIEW_CLASS} flex flex-col items-center justify-center gap-1 bg-gray-100 text-gray-500`}
+              >
+                <Film className="h-6 w-6" />
+                <span className="text-[10px] font-medium">Video added</span>
+              </div>
+            ) : (
+              <>
+                <video
+                  key={previewVideo}
+                  src={`${previewVideo}#t=0.1`}
+                  className={MEDIA_PREVIEW_CLASS}
+                  muted
+                  playsInline
+                  preload="metadata"
+                  onError={() => setVideoThumbError(true)}
+                />
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                  <span className="rounded-full bg-black/50 p-1.5 text-white">
+                    <Play className="h-4 w-4 fill-white" />
+                  </span>
+                </div>
+              </>
+            )}
             <button
               type="button"
               onClick={removeVideo}
@@ -763,7 +787,25 @@ export function ProductForm({
             })}
           </div>
 
-          {renderSwitchField("is_collection", "Add Collection", isCollection)}
+          <div className="grid grid-cols-2 gap-4 lg:col-span-2">
+            <div className="flex flex-col justify-end">
+              {renderSwitchField("is_collection", "Add Collection", isCollection)}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="review_count" className="text-sm whitespace-nowrap">
+                Review Count
+              </Label>
+              <Input
+                id="review_count"
+                type="number"
+                min="0"
+                placeholder="0"
+                className={compactInputClass}
+                {...form.register("review_count")}
+              />
+              {renderFieldError("review_count")}
+            </div>
+          </div>
         </div>
       </div>
 

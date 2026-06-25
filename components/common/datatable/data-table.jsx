@@ -17,7 +17,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-export default function DataTable({ columns, data, selectedIds, onSelectedIdsChange }) {
+export default function DataTable({
+  columns,
+  data,
+  selectedIds,
+  onSelectedIdsChange,
+  onRowClick,
+  rowClickIgnoreColumns = ["actions", "select"],
+}) {
   const [sorting, setSorting] = useState([]);
   const [rowSelection, setRowSelection] = useState({});
   const rowSelectionEnabled = Boolean(onSelectedIdsChange);
@@ -105,16 +112,27 @@ export default function DataTable({ columns, data, selectedIds, onSelectedIdsCha
       </TableHeader>
       <TableBody>
         {table.getRowModel().rows.map((row) => (
-          <TableRow key={row.id} className="text-black">
-            {row.getVisibleCells().map((cell) => (
-              <TableCell
-                key={cell.id}
-                className="whitespace-normal break-words border border-gray-200 px-4 py-2 align-middle text-black"
-                style={{ width: cell.column.columnDef.meta?.width }}
-              >
-                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-              </TableCell>
-            ))}
+          <TableRow
+            key={row.id}
+            className={`text-black${onRowClick ? " transition-colors hover:bg-gray-50" : ""}`}
+          >
+            {row.getVisibleCells().map((cell) => {
+              const isClickable =
+                Boolean(onRowClick) && !rowClickIgnoreColumns.includes(cell.column.id);
+
+              return (
+                <TableCell
+                  key={cell.id}
+                  className={`whitespace-normal break-words border border-gray-200 px-4 py-2 align-middle text-black${
+                    isClickable ? " cursor-pointer" : ""
+                  }`}
+                  style={{ width: cell.column.columnDef.meta?.width }}
+                  onClick={isClickable ? () => onRowClick(row.original) : undefined}
+                >
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </TableCell>
+              );
+            })}
           </TableRow>
         ))}
       </TableBody>

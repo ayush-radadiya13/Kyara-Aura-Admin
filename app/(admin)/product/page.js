@@ -297,6 +297,7 @@ export default function ProductPage() {
             setPagination({ offset: newOffset, limit: newLimit });
           }}
           onEditAction={handleEdit}
+          onRowClickAction={handleEdit}
           onDeleteAction={(product) => setProductToDeleteId(product.id)}
         />
       )}

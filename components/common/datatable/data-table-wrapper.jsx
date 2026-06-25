@@ -25,6 +25,7 @@ export function DataTableWrapper({
   onSortChangeAction,
   onDeleteAction,
   onEditAction,
+  onRowClickAction,
   selectedIds,
   onSelectedIdsChange,
   data,
@@ -91,6 +92,7 @@ export function DataTableWrapper({
               data={data}
               selectedIds={selectedIds}
               onSelectedIdsChange={onSelectedIdsChange}
+              onRowClick={onRowClickAction}
             />
           </div>
         </div>

@@ -29,6 +29,7 @@ export const productSchema = z.object({
   package_contents: z.string().trim().optional(),
   is_active: z.boolean(),
   is_collection: z.boolean().optional(),
+  review_count: z.coerce.number().min(0).optional(),
   images: z.array(z.any()).max(4, "Maximum 4 images allowed").optional(),
   video: z.string().trim().optional(),
   sizes: z.preprocess(

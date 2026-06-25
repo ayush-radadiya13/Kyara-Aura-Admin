@@ -13,6 +13,7 @@ import {
   RotateCcw,
   Settings,
   ShoppingBag,
+  Star,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -40,6 +41,7 @@ const links = {
   orders: "/orders",
   returnOrders: "/return-orders",
   promoCode: "/promo-code",
+  reviews: "/reviews",
   settings: "/settings",
   settingsWeb: "/settings/web-settings",
   settingsBanner: "/settings/banner",
@@ -267,6 +269,20 @@ export function SidebarNav({
             <BadgePercent aria-hidden />
             <span className={cn("truncate", collapsed && "sr-only")}>
               Promo Code
+            </span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            render={<Link href={links.reviews} onClick={onNavigate} />}
+            isActive={isRouteActive(pathname, links.reviews)}
+            tooltip={enableTooltips ? "Reviews" : undefined}
+            className={topButtonClass(isRouteActive(pathname, links.reviews))}
+          >
+            <Star aria-hidden />
+            <span className={cn("truncate", collapsed && "sr-only")}>
+              Reviews
             </span>
           </SidebarMenuButton>
         </SidebarMenuItem>

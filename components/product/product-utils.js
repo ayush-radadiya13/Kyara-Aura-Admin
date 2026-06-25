@@ -31,7 +31,10 @@ function normalizeProductImages(item) {
     item?.primary_image_url,
   ];
 
-  return images.map(normalizeProductImage).filter(Boolean);
+  return images
+    .map(normalizeProductImage)
+    .filter(Boolean)
+    .filter((url) => !looksLikeVideoUrl(url));
 }
 
 function isNumericString(value) {
@@ -86,6 +89,95 @@ function resolveProductCategoryName(item) {
   return typeof category === "string" && !isNumericString(category) ? category : "";
 }
 
+const VIDEO_EXTENSION_REGEX = /\.(mp4|webm|ogg|mov|m4v|avi|mkv)(\?.*)?$/i;
+
+function looksLikeVideoUrl(url) {
+  return typeof url === "string" && VIDEO_EXTENSION_REGEX.test(url.trim());
+}
+
+function getObjectUrl(value) {
+  const candidate =
+    value.url ||
+    value.video_url ||
+    value.video ||
+    value.image_url ||
+    value.image_path ||
+    value.preview ||
+    value.path ||
+    value.file ||
+    value.location ||
+    value.secure_url ||
+    value.src ||
+    value.image ||
+    "";
+  return typeof candidate === "string" ? candidate.trim() : "";
+}
+
+function isVideoTyped(value) {
+  const type = String(value?.type || value?.mime_type || value?.media_type || "").toLowerCase();
+  return type.startsWith("video") || type === "mp4";
+}
+
+function resolveVideoUrl(value, { requireVideoLike = false } = {}) {
+  if (!value) return "";
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    return !requireVideoLike || looksLikeVideoUrl(trimmed) ? trimmed : "";
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const url = resolveVideoUrl(item, { requireVideoLike: true });
+      if (url) return url;
+    }
+    return "";
+  }
+
+  if (typeof value === "object") {
+    const url = getObjectUrl(value);
+    if (!url) return "";
+    if (requireVideoLike && !isVideoTyped(value) && !looksLikeVideoUrl(url)) {
+      return "";
+    }
+    return url;
+  }
+
+  return "";
+}
+
+function resolveProductVideo(item) {
+  const candidates = [
+    item?.video,
+    item?.video_url,
+    item?.videoUrl,
+    item?.product_video,
+    item?.productVideo,
+    item?.video_link,
+    item?.videoLink,
+    item?.videos,
+    item?.media,
+  ];
+
+  for (const candidate of candidates) {
+    const url = resolveVideoUrl(candidate);
+    if (url) return url;
+  }
+
+  const mixedMedia = [
+    ...(Array.isArray(item?.image) ? item.image : item?.image ? [item.image] : []),
+    ...(Array.isArray(item?.images) ? item.images : item?.images ? [item.images] : []),
+  ];
+
+  for (const media of mixedMedia) {
+    const url = resolveVideoUrl(media, { requireVideoLike: true });
+    if (url) return url;
+  }
+
+  return "";
+}
+
 function resolveProductSizeId(size) {
   const sizeId =
     size?.size_id ??
@@ -118,8 +210,9 @@ export function normalizeProduct(item) {
     package_contents: item?.package_contents ?? item?.packageContents ?? "",
     is_active: normalizeBoolean(item?.is_active ?? item?.status),
     is_collection: normalizeBoolean(item?.is_collection ?? item?.add_collection),
+    review_count: item?.review_count ?? item?.reviews_count ?? 0,
     images: normalizeProductImages(item),
-    video: item?.video ?? item?.video_url ?? "",
+    video: resolveProductVideo(item),
     sizes: (item?.sizes ?? []).map((size) => ({
       size_id: resolveProductSizeId(size),
       size_text: size?.size_text ?? size?.size?.name ?? size?.name ?? "",
@@ -188,6 +281,7 @@ export function buildProductPayload(
         : toNumberOrValue(payload.weight_grams),
     is_active: Boolean(payload.is_active),
     is_collection: Boolean(payload.is_collection ?? payload.add_collection),
+    review_count: toNumberOrValue(payload.review_count ?? 0),
     brand: payload.brand ?? "",
     base_material: payload.base_material ?? "",
     plating: payload.plating ?? "",

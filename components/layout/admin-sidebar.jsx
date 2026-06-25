@@ -9,6 +9,7 @@ import {
   Package,
   Users,
   Settings,
+  Star,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -39,6 +40,7 @@ const menuItems = [
   { label: "Customers", href: "/customers", icon: Users },
   { label: "Orders", href: "/orders", icon: ShoppingBag },
   { label: "Promo Code", href: "/promo-code", icon: BadgePercent },
+  { label: "Reviews", href: "/reviews", icon: Star },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
