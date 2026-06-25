@@ -461,20 +461,24 @@ export default function OrdersPage() {
 
   const { mutate: downloadOrderShipmentLabel, isPending: isDownloadingLabel } =
     useDownloadOrderShipmentLabel({
-      onSuccess: ({ blob, filename }, orderId) => {
-        const url = window.URL.createObjectURL(blob);
+      onSuccess: ({ downloadUrl, filename }, orderId) => {
         const link = document.createElement("a");
 
-        link.href = url;
+        link.href = downloadUrl;
         link.download = filename;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
         document.body.appendChild(link);
         link.click();
         link.remove();
-        window.URL.revokeObjectURL(url);
         markLabelsDownloaded([orderId]);
       },
       onError: (error) =>
-        toast.error(error?.response?.data?.message || "Download label failed"),
+        toast.error(
+          error?.response?.data?.message ||
+            error?.message ||
+            "Download label failed"
+        ),
       onSettled: () => setShipmentAction(null),
     });
 

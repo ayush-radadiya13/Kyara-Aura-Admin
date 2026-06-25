@@ -84,30 +84,26 @@ export function useCancelOrderShipment(options) {
   });
 }
 
-function getLabelFilename(headers, orderId) {
-  const disposition = headers?.["content-disposition"] || "";
-  const filenameMatch = disposition.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i);
-
-  if (filenameMatch?.[1]) {
-    return decodeURIComponent(filenameMatch[1]);
-  }
-
-  return `order-${orderId}-label.pdf`;
-}
-
 export function useDownloadOrderShipmentLabel(options) {
   return useMutation({
     mutationFn: async (orderId) => {
       if (!orderId) throw new Error("Missing order ID");
 
       const res = await customAxios.get(
-        ADMIN_API_ROUTES.DOWNLOAD_ORDER_SHIPMENT_LABEL(orderId),
-        { responseType: "blob" }
+        ADMIN_API_ROUTES.DOWNLOAD_ORDER_SHIPMENT_LABEL(orderId)
       );
 
+      const payload = res.data?.data ?? res.data;
+      const downloadUrl =
+        payload?.download_label_url || payload?.shipping_label_url;
+
+      if (!downloadUrl) {
+        throw new Error("Shipping label is not available yet");
+      }
+
       return {
-        blob: res.data,
-        filename: getLabelFilename(res.headers, orderId),
+        downloadUrl,
+        filename: `order-${orderId}-label.pdf`,
       };
     },
     ...options,
