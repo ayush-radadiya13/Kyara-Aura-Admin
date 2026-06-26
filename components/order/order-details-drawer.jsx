@@ -39,6 +39,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { customAxios } from "@/utils/api";
+import { OrderTrackingModal } from "./order-tracking-card";
 import {
   formatCurrency,
   formatDateTime,
@@ -353,9 +354,8 @@ function OrderActionBar({
   isCancelling,
   onDownloadInvoice,
   isDownloadingInvoice,
+  onTrackOrder,
 }) {
-  const trackingUrl = order?.shipment?.courier_tracking_url;
-  const canTrack = Boolean(trackingUrl);
   const canDownloadInvoice = Boolean(order?.invoice_download_url);
   const canCancel = Boolean(order?.can_be_cancelled);
 
@@ -388,12 +388,7 @@ function OrderActionBar({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => {
-            if (trackingUrl) {
-              window.open(trackingUrl, "_blank", "noopener,noreferrer");
-            }
-          }}
-          disabled={!canTrack}
+          onClick={() => onTrackOrder?.()}
         >
           <Truck className="size-4" />
           Track Order
@@ -426,6 +421,7 @@ export function OrderDetailsDrawer({
   isCancelling = false,
 }) {
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+  const [isTrackingOpen, setIsTrackingOpen] = useState(false);
   const orderItems = Array.isArray(order?.order_items) ? order.order_items : [];
   const returnDisplayStatus = getReturnDisplayStatus(order);
   const deliveryStatus = getOrderDeliveryStatus(order);
@@ -513,6 +509,13 @@ export function OrderDetailsDrawer({
                 isCancelling={isCancelling}
                 onDownloadInvoice={handleDownloadInvoice}
                 isDownloadingInvoice={isDownloadingInvoice}
+                onTrackOrder={() => setIsTrackingOpen(true)}
+              />
+
+              <OrderTrackingModal
+                open={isTrackingOpen}
+                onOpenChange={setIsTrackingOpen}
+                order={order}
               />
 
               <div className="grid gap-4 lg:grid-cols-2">

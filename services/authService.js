@@ -20,4 +20,25 @@ export const authService = {
 
     return data;
   },
+
+  async logout() {
+    const response = await fetch("/api/auth/logout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw {
+        response: {
+          status: response.status,
+          data,
+        },
+      };
+    }
+
+    return data;
+  },
 };

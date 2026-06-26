@@ -12,7 +12,7 @@ function isPublicPath(pathname) {
   );
 }
 
-export function middleware(request) {
+export function proxy(request) {
   const token = request.cookies.get(AUTH_COOKIE_KEY)?.value;
   const { pathname } = request.nextUrl;
 

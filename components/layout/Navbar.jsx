@@ -16,6 +16,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -24,6 +25,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getAdminPageTitle } from "@/lib/admin-page-title";
 import { useAuthStore } from "@/store/auth-store";
+import { logoutService } from "@/services/auth-service";
 
 function subscribeToClientMount(onStoreChange) {
   const timeoutId = window.setTimeout(onStoreChange, 0);
@@ -55,9 +57,15 @@ export function Navbar() {
 
   const isDark = mounted && resolvedTheme === "dark";
 
-  const onLogout = () => {
-    logout();
-    router.replace("/login");
+  const onLogout = async () => {
+    try {
+      await logoutService();
+    } catch {
+      // Clear the session locally even if the logout request fails.
+    } finally {
+      logout();
+      router.replace("/login");
+    }
   };
 
   return (
@@ -70,40 +78,8 @@ export function Navbar() {
         </span>
       </div>
       <div className="flex shrink-0 items-center gap-1">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => setTheme(isDark ? "light" : "dark")}
-          aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-          disabled={!mounted}
-        >
-          {!mounted ? (
-            <Sun className="size-4 opacity-50" aria-hidden />
-          ) : isDark ? (
-            <Sun className="size-4" aria-hidden />
-          ) : (
-            <Moon className="size-4" aria-hidden />
-          )}
-        </Button>
-
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          onClick={toggleDirection}
-          aria-label={
-            direction === "rtl"
-              ? "Switch to left-to-right layout"
-              : "Switch to right-to-left layout"
-          }
-        >
-          <ArrowLeftRight
-            className={cn("size-4", direction === "rtl" && "rotate-180")}
-            aria-hidden
-          />
-        </Button>
-
+        
+        
         <DropdownMenu>
           <DropdownMenuTrigger
             className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "gap-2 px-2")}
@@ -117,14 +93,12 @@ export function Navbar() {
             <span className="hidden text-xs font-medium sm:inline">Admin</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-44">
-            <DropdownMenuLabel className="font-normal">
-              <span className="text-foreground">Admin</span>
-              <span className="block text-muted-foreground">admin@kayraaura.com</span>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="font-normal">
+                <span className="text-foreground">Admin</span>
+                <span className="block text-muted-foreground">admin@kayraaura.com</span>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuItem variant="destructive" onClick={onLogout}>
               Logout
             </DropdownMenuItem>

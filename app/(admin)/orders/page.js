@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { DataTableWrapper } from "@/components/common/datatable/data-table-wrapper";
 import { getOrderColumns, BULK_LABEL_DOWNLOAD_LIMIT } from "@/components/order/order-columns";
 import { OrderDetailsDrawer } from "@/components/order/order-details-drawer";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -340,6 +341,7 @@ export default function OrdersPage() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [shipmentAction, setShipmentAction] = useState(null);
+  const [orderToCancel, setOrderToCancel] = useState(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
   const [downloadedLabelOrderIds, setDownloadedLabelOrderIds] = useState([]);
   const searchParams = useSearchParams();
@@ -443,7 +445,10 @@ export default function OrdersPage() {
       },
       onError: (error) =>
         toast.error(error?.response?.data?.message || "Cancel order failed"),
-      onSettled: () => setShipmentAction(null),
+      onSettled: () => {
+        setShipmentAction(null);
+        setOrderToCancel(null);
+      },
     });
 
   const markLabelsDownloaded = useCallback((orderIds) => {
@@ -522,16 +527,19 @@ export default function OrdersPage() {
     [createOrderShipment]
   );
 
-  const handleCancelOrder = useCallback(
-    (order) => {
-      const orderId = order?.id;
-      if (!orderId) return;
+  const handleCancelOrder = useCallback((order) => {
+    if (!order?.id) return;
 
-      setShipmentAction({ orderId, type: "cancel" });
-      cancelOrderShipment(orderId);
-    },
-    [cancelOrderShipment]
-  );
+    setOrderToCancel(order);
+  }, []);
+
+  const handleConfirmCancelOrder = useCallback(() => {
+    const orderId = orderToCancel?.id;
+    if (!orderId) return;
+
+    setShipmentAction({ orderId, type: "cancel" });
+    cancelOrderShipment(orderId);
+  }, [cancelOrderShipment, orderToCancel]);
 
   const handleDownloadLabel = useCallback(
     (order) => {
@@ -767,6 +775,26 @@ export default function OrdersPage() {
           shipmentAction?.orderId === activeOrder?.id &&
           shipmentAction?.type === "cancel"
         }
+      />
+
+      <ConfirmDialog
+        open={Boolean(orderToCancel)}
+        onOpenChange={(open) => {
+          if (!open && !isCancellingShipment) {
+            setOrderToCancel(null);
+          }
+        }}
+        title="Confirm Order Cancellation"
+        message={
+          orderToCancel
+            ? `Are you sure you want to cancel order ${orderToCancel.order_number || orderToCancel.id}? This action cannot be undone.`
+            : "Are you sure you want to cancel this order?"
+        }
+        confirmLabel="Cancel Order"
+        confirmVariant="destructive"
+        loadingLabel="Cancelling..."
+        isLoading={isCancellingShipment}
+        onConfirm={handleConfirmCancelOrder}
       />
     </section>
   );

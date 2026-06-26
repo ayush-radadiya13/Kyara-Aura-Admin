@@ -113,7 +113,7 @@ export default function DataTable({
       <TableBody>
         {table.getRowModel().rows.map((row) => (
           <TableRow
-            key={row.id}
+            key={`${row.id}-${row.index}`}
             className={`text-black${onRowClick ? " transition-colors hover:bg-gray-50" : ""}`}
           >
             {row.getVisibleCells().map((cell) => {

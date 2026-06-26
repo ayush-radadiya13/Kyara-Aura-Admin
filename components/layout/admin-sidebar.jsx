@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
+import { logoutService } from "@/services/auth-service";
 import { create } from "zustand";
 import {
   Sidebar,
@@ -97,9 +98,15 @@ export function AdminSidebar({ onNavigate }) {
   const isOpen = useSidebarStore((state) => state.isOpen);
   const setIsOpen = useSidebarStore((state) => state.setIsOpen);
 
-  const handleLogout = () => {
-    logout();
-    router.push("/login");
+  const handleLogout = async () => {
+    try {
+      await logoutService();
+    } catch {
+      // Clear the session locally even if the logout request fails.
+    } finally {
+      logout();
+      router.push("/login");
+    }
   };
 
   return (
