@@ -331,6 +331,36 @@ function OrderItemsTable({ items }) {
   );
 }
 
+function getCancellationReason(order) {
+  if (!order || order?.status !== "cancelled") return null;
+
+  const notes = typeof order?.notes === "string" ? order.notes.trim() : "";
+  if (!notes) return null;
+
+  const match = notes.match(/cancellation reason\s*:?\s*(.*)/is);
+  const reason = (match?.[1] ?? notes).trim();
+
+  return reason || null;
+}
+
+function CancellationReasonCard({ reason }) {
+  return (
+    <Card className="border-destructive/40 bg-destructive/5 shadow-sm">
+      <CardHeader className="border-b border-destructive/20 pb-3">
+        <CardTitle className="flex items-center gap-2 text-base text-destructive">
+          <XCircle className="size-4" />
+          Cancellation Reason
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-4">
+        <p className="text-sm font-medium text-foreground break-words [overflow-wrap:anywhere]">
+          {reason}
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
 function DrawerLoadingState() {
   return (
     <div className="space-y-4 p-6">
@@ -425,6 +455,7 @@ export function OrderDetailsDrawer({
   const orderItems = Array.isArray(order?.order_items) ? order.order_items : [];
   const returnDisplayStatus = getReturnDisplayStatus(order);
   const deliveryStatus = getOrderDeliveryStatus(order);
+  const cancellationReason = getCancellationReason(order);
 
   const handleDownloadInvoice = async () => {
     const invoiceUrl = order?.invoice_download_url;
@@ -517,6 +548,10 @@ export function OrderDetailsDrawer({
                 onOpenChange={setIsTrackingOpen}
                 order={order}
               />
+
+              {cancellationReason ? (
+                <CancellationReasonCard reason={cancellationReason} />
+              ) : null}
 
               <div className="grid gap-4 lg:grid-cols-2">
                 <SectionCard title="Customer Information" icon={User}>

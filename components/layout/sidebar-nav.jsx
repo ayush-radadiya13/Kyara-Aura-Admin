@@ -14,6 +14,7 @@ import {
   Settings,
   ShoppingBag,
   Star,
+  Users,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -38,6 +39,7 @@ const links = {
   dashboard: "/dashboard",
   category: "/category",
   products: "/product",
+  customers: "/customers",
   orders: "/orders",
   returnOrders: "/return-orders",
   promoCode: "/promo-code",
@@ -159,6 +161,20 @@ export function SidebarNav({
             <Package aria-hidden />
             <span className={cn("truncate", collapsed && "sr-only")}>
               Products
+            </span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            render={<Link href={links.customers} onClick={onNavigate} />}
+            isActive={isRouteActive(pathname, links.customers)}
+            tooltip={enableTooltips ? "Customers" : undefined}
+            className={topButtonClass(isRouteActive(pathname, links.customers))}
+          >
+            <Users aria-hidden />
+            <span className={cn("truncate", collapsed && "sr-only")}>
+              Customers
             </span>
           </SidebarMenuButton>
         </SidebarMenuItem>
