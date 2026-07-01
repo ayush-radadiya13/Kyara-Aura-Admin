@@ -1,5 +1,37 @@
 "use client";
 
+const DOWNLOADED_LABEL_ORDER_IDS_KEY = "kyara-downloaded-order-label-ids";
+
+export function normalizeOrderId(id) {
+  if (id == null || id === "") return null;
+  return String(id);
+}
+
+export function readDownloadedLabelOrderIds() {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const stored = sessionStorage.getItem(DOWNLOADED_LABEL_ORDER_IDS_KEY);
+    if (!stored) return [];
+
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return [];
+
+    return [...new Set(parsed.map(normalizeOrderId).filter(Boolean))];
+  } catch {
+    return [];
+  }
+}
+
+export function persistDownloadedLabelOrderIds(orderIds) {
+  if (typeof window === "undefined") return;
+
+  sessionStorage.setItem(
+    DOWNLOADED_LABEL_ORDER_IDS_KEY,
+    JSON.stringify(orderIds)
+  );
+}
+
 export function formatCurrency(value) {
   const numericValue = Number(value ?? 0);
 

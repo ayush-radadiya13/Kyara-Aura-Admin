@@ -29,6 +29,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  normalizeOrderId,
+  persistDownloadedLabelOrderIds,
+  readDownloadedLabelOrderIds,
+} from "@/components/order/order-utils";
+import {
   normalizeOrdersResponse,
   useCancelOrderShipment,
   useCreateOrderShipment,
@@ -343,7 +348,9 @@ export default function OrdersPage() {
   const [shipmentAction, setShipmentAction] = useState(null);
   const [orderToCancel, setOrderToCancel] = useState(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
-  const [downloadedLabelOrderIds, setDownloadedLabelOrderIds] = useState([]);
+  const [downloadedLabelOrderIds, setDownloadedLabelOrderIds] = useState(
+    readDownloadedLabelOrderIds
+  );
   const searchParams = useSearchParams();
   const {
     orderViews,
@@ -456,11 +463,13 @@ export default function OrdersPage() {
       const next = new Set(current);
 
       orderIds.forEach((id) => {
-        const numericId = Number(id);
-        if (numericId) next.add(numericId);
+        const normalizedId = normalizeOrderId(id);
+        if (normalizedId) next.add(normalizedId);
       });
 
-      return [...next];
+      const updated = [...next];
+      persistDownloadedLabelOrderIds(updated);
+      return updated;
     });
   }, []);
 

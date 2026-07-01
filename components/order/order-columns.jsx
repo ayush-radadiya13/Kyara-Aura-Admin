@@ -17,6 +17,7 @@ import {
   getOrderStatusClass,
   getPaymentStatusClass,
   hasOrderWaybill,
+  normalizeOrderId,
 } from "./order-utils";
 
 const PENDING_ADMIN_CONFIRMATION = "pending_admin_confirmation";
@@ -44,19 +45,23 @@ export function getOrderColumns(loading, shipmentActions = {}) {
       cell: ({ row }) => {
         const order = row.original;
         const orderId = order?.id;
+        const normalizedOrderId = normalizeOrderId(orderId);
         const status = String(order?.status || "").toLowerCase();
         const showCodActions = status === PENDING_ADMIN_CONFIRMATION;
         const hasWaybill = hasOrderWaybill(order);
         const isSelected = selectedOrderIds.includes(Number(orderId));
         const isConfirming =
-          actionOrderId === orderId && actionType === "confirm";
+          normalizeOrderId(actionOrderId) === normalizedOrderId &&
+          actionType === "confirm";
         const isCancelling =
-          actionOrderId === orderId && actionType === "cancel";
+          normalizeOrderId(actionOrderId) === normalizedOrderId &&
+          actionType === "cancel";
         const isDownloadingLabel =
-          actionOrderId === orderId && actionType === "download-label";
-        const isLabelDownloaded = downloadedLabelOrderIds.includes(
-          Number(orderId)
-        );
+          normalizeOrderId(actionOrderId) === normalizedOrderId &&
+          actionType === "download-label";
+        const isLabelDownloaded =
+          normalizedOrderId != null &&
+          downloadedLabelOrderIds.includes(normalizedOrderId);
 
         return (
           <div className="flex justify-start items-center gap-1">

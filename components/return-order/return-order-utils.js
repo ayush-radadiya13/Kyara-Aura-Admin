@@ -87,40 +87,6 @@ export function getReturnItemSummary(items) {
   return `${items.length} items`;
 }
 
-const NON_PAYABLE_RETURN_STATUSES = new Set([
-  "completed",
-  "refunded",
-  "rejected",
-  "cancelled",
-  "failed",
-]);
-
-const PAYABLE_RETURN_STATUSES = new Set([
-  "pending",
-  "awaiting_refund",
-  "received",
-]);
-
 export function canShowPayRefundButton(returnOrder) {
-  if (!returnOrder?.order_id || !returnOrder?.return_request_id) {
-    return false;
-  }
-
-  const status = String(returnOrder.status || "").toLowerCase();
-
-  if (NON_PAYABLE_RETURN_STATUSES.has(status)) {
-    return false;
-  }
-
-  if (returnOrder.refunded_at || returnOrder.razorpay_refund_id) {
-    return false;
-  }
-
-  if (returnOrder.cod_refund_requires_upi_reference) {
-    return Boolean(returnOrder.upi_transaction_reference?.trim());
-  }
-
-  return (
-    returnOrder.can_pay_refund || PAYABLE_RETURN_STATUSES.has(status)
-  );
+  return Boolean(returnOrder?.can_pay_refund);
 }
