@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import {
   Banknote,
@@ -10,6 +11,7 @@ import {
   Loader2,
   Package,
   RotateCcw,
+  Truck,
   User,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +45,12 @@ import {
   getReturnRequestStatusClass,
   canShowPayRefundButton,
 } from "./return-order-utils";
-import { getOrderStatusClass, getPaymentStatusClass } from "@/components/order/order-utils";
+import {
+  getOrderStatusClass,
+  getPaymentStatusClass,
+  getReturnStatusClass,
+} from "@/components/order/order-utils";
+import { ReturnTrackingModal } from "./return-tracking-modal";
 
 function InfoItem({ label, value, mono = false }) {
   return (
@@ -184,6 +191,8 @@ export function ReturnOrderDetailsDrawer({
   onPayRefund,
   isPayingRefund = false,
 }) {
+  const [isTrackingOpen, setIsTrackingOpen] = useState(false);
+
   if (!returnOrder) return null;
 
   const customer = returnOrder.customer || {};
@@ -204,21 +213,33 @@ export function ReturnOrderDetailsDrawer({
             <Badge className={getReturnRequestStatusClass(returnOrder.status)}>
               {formatLabel(returnOrder.status)}
             </Badge>
-            {returnOrder.is_partial ? (
-              <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">
-                Partial Return
+            {returnOrder.shipment_return_status ? (
+              <Badge className={getReturnStatusClass(returnOrder.shipment_return_status)}>
+                {formatLabel(returnOrder.shipment_return_status)}
               </Badge>
-            ) : (
-              <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-100">
-                Full Return
-              </Badge>
-            )}
+            ) : null}
           </div>
           <SheetDescription className="text-left">
             Return request submitted by the customer. Review all details below
             before processing the refund.
           </SheetDescription>
+          <div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsTrackingOpen(true)}
+            >
+              <Truck className="size-4" />
+              Track Return
+            </Button>
+          </div>
         </SheetHeader>
+
+        <ReturnTrackingModal
+          open={isTrackingOpen}
+          onOpenChange={setIsTrackingOpen}
+          returnOrder={returnOrder}
+        />
 
         <div className="flex-1 overflow-y-auto bg-muted/20 p-6">
           <div className="space-y-5 pb-8">

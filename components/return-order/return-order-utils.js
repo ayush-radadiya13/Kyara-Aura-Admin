@@ -42,6 +42,27 @@ export function getPaymentMethodClass(method) {
   return "bg-gray-100 text-gray-700 hover:bg-gray-100";
 }
 
+export const RETURN_TRACKING_LABELS = [
+  "Return Requested",
+  "Package Picked Up",
+  "Return In Transit",
+  "Arriving at Warehouse",
+  "Return Completed",
+];
+
+export function getReturnTrackingStepIndex(returnOrder) {
+  const orderStatus = returnOrder?.order_status;
+  const shipmentReturnStatus = returnOrder?.shipment_return_status;
+
+  if (shipmentReturnStatus === "delivered") return 4;
+  if (shipmentReturnStatus === "out_for_delivery") return 3;
+  if (shipmentReturnStatus === "in_transit") return 2;
+  if (shipmentReturnStatus === "picked_up") return 1;
+  if (orderStatus === "return_requested") return 0;
+
+  return -1;
+}
+
 export function normalizeReturnOrder(item) {
   const returnRequestId = item?.return_request_id ?? "";
   const orderId = item?.order_id ?? null;
@@ -53,6 +74,8 @@ export function normalizeReturnOrder(item) {
     order_number: item?.order_number ?? "",
     payment_method: item?.payment_method ?? "",
     order_status: item?.order_status ?? "",
+    shipment_return_status: item?.shipment_return_status ?? "",
+    return_display_status: item?.return_display_status ?? "",
     payment_status: item?.payment_status ?? "",
     order_total_amount: item?.order_total_amount ?? 0,
     customer: item?.customer ?? {},
