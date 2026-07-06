@@ -1,10 +1,35 @@
 "use client";
 
+import {
+  ORDER_STATUS_RETURN_REQUESTED,
+  ORDER_STATUSES_RETURN_COMPLETED,
+  RETURN_DISPLAY_STATUS,
+  SHIPMENT_RETURN_STATUSES_RETURN_COMPLETED,
+} from "./return-status-constants";
+
+import {
+  formatEstimatedDate,
+  formatLabel,
+} from "@/components/order/order-utils";
+
 export {
   formatCurrency,
   formatDateTime,
+  formatEstimatedDate,
   formatLabel,
+  getReturnDisplayStatus,
 } from "@/components/order/order-utils";
+
+export {
+  ORDER_STATUS_RETURN_REQUESTED,
+  ORDER_STATUSES_RETURN_COMPLETED,
+  RETURN_DISPLAY_STATUS,
+  RETURN_DISPLAY_STATUS_VALUES,
+  SHIPMENT_RETURN_STATUSES_CANCELLED,
+  SHIPMENT_RETURN_STATUSES_PROCESSING,
+  SHIPMENT_RETURN_STATUSES_REQUESTED,
+  SHIPMENT_RETURN_STATUSES_RETURN_COMPLETED,
+} from "./return-status-constants";
 
 export function getReturnRequestStatusClass(status) {
   const normalizedStatus = String(status || "").toLowerCase();
@@ -17,7 +42,7 @@ export function getReturnRequestStatusClass(status) {
     return "bg-blue-100 text-blue-700 hover:bg-blue-100";
   }
 
-  if (["pending", "return_requested"].includes(normalizedStatus)) {
+  if (["pending", ORDER_STATUS_RETURN_REQUESTED].includes(normalizedStatus)) {
     return "bg-yellow-100 text-yellow-700 hover:bg-yellow-100";
   }
 
@@ -50,15 +75,113 @@ export const RETURN_TRACKING_LABELS = [
   "Return Completed",
 ];
 
-export function getReturnTrackingStepIndex(returnOrder) {
-  const orderStatus = returnOrder?.order_status;
-  const shipmentReturnStatus = returnOrder?.shipment_return_status;
+export function getReturnShipment(returnOrder) {
+  return (
+    returnOrder?.shipment ??
+    returnOrder?.order?.shipment ??
+    null
+  );
+}
 
-  if (shipmentReturnStatus === "delivered") return 4;
+export function buildReturnTrackingContext(returnOrder, orderDetails) {
+  if (!returnOrder) return null;
+
+  return {
+    ...returnOrder,
+    shipment: getReturnShipment(returnOrder) ?? orderDetails?.shipment ?? null,
+  };
+}
+
+export function getReturnEstimatedReturnAt(returnOrder) {
+  const shipmentReturn = getReturnShipment(returnOrder)?.return;
+
+  return (
+    shipmentReturn?.estimated_return_at ??
+    returnOrder?.estimated_return_at ??
+    null
+  );
+}
+
+export function getReturnEstimatedReturnDate(returnOrder) {
+  const estimatedReturnAt = getReturnEstimatedReturnAt(returnOrder);
+  if (!estimatedReturnAt) return null;
+
+  return formatEstimatedDate(estimatedReturnAt);
+}
+
+export function getReturnRequestStatus(returnOrder) {
+  return (
+    returnOrder?.return_request_status ??
+    returnOrder?.status ??
+    returnOrder?.return_request?.latest?.status ??
+    ""
+  );
+}
+
+export function getReturnTrackingInfo(returnOrder) {
+  const shipment = getReturnShipment(returnOrder);
+  const shipmentReturn = shipment?.return;
+  const estimatedReturnAt =
+    shipmentReturn?.estimated_return_at ?? returnOrder?.estimated_return_at;
+
+  if (estimatedReturnAt) {
+    const date = formatEstimatedDate(estimatedReturnAt);
+    if (date) {
+      return {
+        label: "Estimated Return Date",
+        value: date,
+      };
+    }
+  }
+
+  if (isReturnTrackingComplete(returnOrder) || (shipment != null && shipmentReturn == null)) {
+    const status = getReturnRequestStatus(returnOrder);
+    if (status) {
+      return {
+        label: "Return Status",
+        value: formatLabel(status),
+      };
+    }
+  }
+
+  return null;
+}
+
+function getShipmentReturnStatus(returnOrder) {
+  return (
+    returnOrder?.shipment_return_status ||
+    getReturnShipment(returnOrder)?.return?.status ||
+    ""
+  );
+}
+
+function isReturnTrackingComplete(returnOrder) {
+  const orderStatus = returnOrder?.order_status;
+  const shipmentReturnStatus = getShipmentReturnStatus(returnOrder);
+  const displayStatus = returnOrder?.return_display_status;
+  const returnRequestStatus = getReturnRequestStatus(returnOrder);
+
+  return (
+    ORDER_STATUSES_RETURN_COMPLETED.includes(orderStatus) ||
+    SHIPMENT_RETURN_STATUSES_RETURN_COMPLETED.includes(shipmentReturnStatus) ||
+    ["completed", "refunded"].includes(String(returnRequestStatus).toLowerCase()) ||
+    displayStatus === RETURN_DISPLAY_STATUS.RETURN_COMPLETED ||
+    displayStatus === "returned"
+  );
+}
+
+export function getReturnTrackingStepIndex(returnOrder) {
+  if (!returnOrder) return -1;
+
+  if (isReturnTrackingComplete(returnOrder)) return 4;
+
+  const orderStatus = returnOrder?.order_status;
+  const shipmentReturnStatus = getShipmentReturnStatus(returnOrder);
+
   if (shipmentReturnStatus === "out_for_delivery") return 3;
   if (shipmentReturnStatus === "in_transit") return 2;
-  if (shipmentReturnStatus === "picked_up") return 1;
-  if (orderStatus === "return_requested") return 0;
+  if (["picked_up", "pickup_pending"].includes(shipmentReturnStatus)) return 1;
+  if (orderStatus === ORDER_STATUS_RETURN_REQUESTED) return 0;
 
   return -1;
 }
@@ -74,8 +197,14 @@ export function normalizeReturnOrder(item) {
     order_number: item?.order_number ?? "",
     payment_method: item?.payment_method ?? "",
     order_status: item?.order_status ?? "",
+    shipment: item?.shipment ?? null,
+    order: item?.order ?? null,
+    estimated_return_at: item?.estimated_return_at ?? null,
     shipment_return_status: item?.shipment_return_status ?? "",
     return_display_status: item?.return_display_status ?? "",
+    return_request_status: item?.return_request_status ?? "",
+    return_request: item?.return_request ?? null,
+    return_summary: item?.return_summary ?? null,
     payment_status: item?.payment_status ?? "",
     order_total_amount: item?.order_total_amount ?? 0,
     customer: item?.customer ?? {},
@@ -83,7 +212,7 @@ export function normalizeReturnOrder(item) {
     items: Array.isArray(item?.items) ? item.items : [],
     refund_amount: item?.refund_amount ?? 0,
     is_partial: Boolean(item?.is_partial),
-    status: item?.status ?? "",
+    status: item?.return_request_status ?? item?.status ?? "",
     product_images: Array.isArray(item?.product_images) ? item.product_images : [],
     refund_details: item?.refund_details ?? null,
     requested_at: item?.requested_at ?? null,
@@ -94,7 +223,7 @@ export function normalizeReturnOrder(item) {
     razorpay_refund_id: item?.razorpay_refund_id ?? null,
     razorpay_payout_id: item?.razorpay_payout_id ?? null,
     upi_transaction_reference: item?.upi_transaction_reference ?? null,
-    can_pay_refund: Boolean(item?.can_pay_refund),
+    can_pay_refund: Boolean(item?.can_pay_refund ?? item?.can_pay_return_refund),
     cod_refund_requires_upi_reference: Boolean(item?.cod_refund_requires_upi_reference),
   };
 }

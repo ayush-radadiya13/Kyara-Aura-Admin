@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import {
   Check,
   CircleCheckBig,
@@ -20,7 +21,13 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { formatDateTime } from "@/components/order/order-utils";
-import { RETURN_TRACKING_LABELS, getReturnTrackingStepIndex } from "./return-order-utils";
+import { useOrderDetails } from "@/hooks/admin/module/use-orders";
+import {
+  RETURN_TRACKING_LABELS,
+  buildReturnTrackingContext,
+  getReturnTrackingInfo,
+  getReturnTrackingStepIndex,
+} from "./return-order-utils";
 
 const RETURN_TRACKING_STEPS = [
   { key: "return_requested", label: RETURN_TRACKING_LABELS[0], icon: RotateCcw },
@@ -103,6 +110,19 @@ function ReturnTrackingTimeline({ currentIndex }) {
   );
 }
 
+function ReturnTrackingInfoCard({ label, value }) {
+  if (!value) return null;
+
+  return (
+    <div className="mb-4 rounded-xl border border-[#E5E7EB] bg-muted/30 p-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 text-sm font-medium text-foreground">{value}</p>
+    </div>
+  );
+}
+
 function ReturnStatusBadge({ isCompleted, label }) {
   return (
     <span
@@ -125,10 +145,16 @@ function ReturnStatusBadge({ isCompleted, label }) {
 }
 
 export function ReturnTrackingModal({ open, onOpenChange, returnOrder }) {
-  const rawIndex = getReturnTrackingStepIndex(returnOrder);
+  const { data: orderDetails } = useOrderDetails(returnOrder?.order_id, open);
+  const trackingContext = useMemo(
+    () => buildReturnTrackingContext(returnOrder, orderDetails),
+    [returnOrder, orderDetails]
+  );
+  const rawIndex = getReturnTrackingStepIndex(trackingContext);
   const currentIndex = rawIndex < 0 ? 0 : rawIndex;
   const isCompleted = currentIndex === RETURN_TRACKING_STEPS.length - 1;
   const statusLabel = RETURN_TRACKING_STEPS[currentIndex].label;
+  const trackingInfo = getReturnTrackingInfo(trackingContext);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -174,6 +200,12 @@ export function ReturnTrackingModal({ open, onOpenChange, returnOrder }) {
         </div>
 
         <div className="max-h-[calc(90vh-9rem)] overflow-y-auto px-6 py-5">
+          {trackingInfo ? (
+            <ReturnTrackingInfoCard
+              label={trackingInfo.label}
+              value={trackingInfo.value}
+            />
+          ) : null}
           <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Return Progress
           </p>

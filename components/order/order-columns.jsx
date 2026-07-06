@@ -119,15 +119,18 @@ export function getOrderColumns(loading, shipmentActions = {}) {
                       variant="ghost"
                       size="icon"
                       aria-label="Download Label"
+                      className={
+                        isLabelDownloaded
+                          ? "text-green-600 hover:text-green-600"
+                          : undefined
+                      }
                       onClick={() => onDownloadLabel?.(order)}
                       disabled={loading || !orderId}
                     >
                       {isDownloadingLabel ? (
                         <Loader2 className="size-4 animate-spin" />
                       ) : (
-                        <Download
-                          className={`size-4 ${isLabelDownloaded ? "text-green-600" : ""}`}
-                        />
+                        <Download className="size-4" />
                       )}
                     </Button>
                   }

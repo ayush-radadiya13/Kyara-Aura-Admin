@@ -1,5 +1,15 @@
 "use client";
 
+import {
+  ORDER_STATUS_RETURN_REQUESTED,
+  ORDER_STATUSES_RETURN_COMPLETED,
+  RETURN_DISPLAY_STATUS,
+  SHIPMENT_RETURN_STATUSES_CANCELLED,
+  SHIPMENT_RETURN_STATUSES_PROCESSING,
+  SHIPMENT_RETURN_STATUSES_REQUESTED,
+  SHIPMENT_RETURN_STATUSES_RETURN_COMPLETED,
+} from "@/components/return-order/return-status-constants";
+
 const DOWNLOADED_LABEL_ORDER_IDS_KEY = "kyara-downloaded-order-label-ids";
 
 export function normalizeOrderId(id) {
@@ -11,7 +21,17 @@ export function readDownloadedLabelOrderIds() {
   if (typeof window === "undefined") return [];
 
   try {
-    const stored = sessionStorage.getItem(DOWNLOADED_LABEL_ORDER_IDS_KEY);
+    let stored = localStorage.getItem(DOWNLOADED_LABEL_ORDER_IDS_KEY);
+
+    if (!stored) {
+      const legacyStored = sessionStorage.getItem(DOWNLOADED_LABEL_ORDER_IDS_KEY);
+      if (legacyStored) {
+        localStorage.setItem(DOWNLOADED_LABEL_ORDER_IDS_KEY, legacyStored);
+        sessionStorage.removeItem(DOWNLOADED_LABEL_ORDER_IDS_KEY);
+        stored = legacyStored;
+      }
+    }
+
     if (!stored) return [];
 
     const parsed = JSON.parse(stored);
@@ -26,7 +46,7 @@ export function readDownloadedLabelOrderIds() {
 export function persistDownloadedLabelOrderIds(orderIds) {
   if (typeof window === "undefined") return;
 
-  sessionStorage.setItem(
+  localStorage.setItem(
     DOWNLOADED_LABEL_ORDER_IDS_KEY,
     JSON.stringify(orderIds)
   );
@@ -60,6 +80,19 @@ export function formatLabel(value) {
   return String(value)
     .replace(/_/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+export function formatEstimatedDate(value) {
+  if (!value) return null;
+
+  const date = new Date(String(value).replace(" ", "T"));
+  if (Number.isNaN(date.getTime())) return null;
+
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
 }
 
 export function getOrderStatusClass(status) {
@@ -107,19 +140,30 @@ export function getPaymentStatusClass(status) {
 }
 
 export function getReturnDisplayStatus(order) {
-  const returnStatus = order?.shipment?.return?.status;
-  const orderStatus = order?.status;
+  const returnStatus =
+    order?.shipment?.return?.status ?? order?.shipment_return_status;
+  const orderStatus = order?.status ?? order?.order_status;
 
-  if (orderStatus === "returned" || returnStatus === "delivered") {
-    return "returned";
+  if (
+    ORDER_STATUSES_RETURN_COMPLETED.includes(orderStatus) ||
+    SHIPMENT_RETURN_STATUSES_RETURN_COMPLETED.includes(returnStatus)
+  ) {
+    return RETURN_DISPLAY_STATUS.RETURN_COMPLETED;
   }
 
-  if (["picked_up", "in_transit", "out_for_delivery"].includes(returnStatus)) {
-    return "return_processing";
+  if (SHIPMENT_RETURN_STATUSES_PROCESSING.includes(returnStatus)) {
+    return RETURN_DISPLAY_STATUS.RETURN_PROCESSING;
   }
 
-  if (orderStatus === "return_requested") {
-    return "return_requested";
+  if (
+    orderStatus === ORDER_STATUS_RETURN_REQUESTED ||
+    SHIPMENT_RETURN_STATUSES_REQUESTED.includes(returnStatus)
+  ) {
+    return RETURN_DISPLAY_STATUS.RETURN_REQUESTED;
+  }
+
+  if (SHIPMENT_RETURN_STATUSES_CANCELLED.includes(returnStatus)) {
+    return RETURN_DISPLAY_STATUS.RETURN_CANCELLED;
   }
 
   return null;
@@ -128,16 +172,23 @@ export function getReturnDisplayStatus(order) {
 export function getReturnStatusClass(status) {
   const normalizedStatus = String(status || "").toLowerCase();
 
-  if (normalizedStatus === "returned") {
+  if (
+    normalizedStatus === RETURN_DISPLAY_STATUS.RETURN_COMPLETED ||
+    normalizedStatus === "returned"
+  ) {
     return "bg-purple-100 text-purple-700 hover:bg-purple-100";
   }
 
-  if (normalizedStatus === "return_processing") {
+  if (normalizedStatus === RETURN_DISPLAY_STATUS.RETURN_PROCESSING) {
     return "bg-blue-100 text-blue-700 hover:bg-blue-100";
   }
 
-  if (normalizedStatus === "return_requested") {
+  if (normalizedStatus === RETURN_DISPLAY_STATUS.RETURN_REQUESTED) {
     return "bg-yellow-100 text-yellow-700 hover:bg-yellow-100";
+  }
+
+  if (normalizedStatus === RETURN_DISPLAY_STATUS.RETURN_CANCELLED) {
+    return "bg-red-100 text-red-700 hover:bg-red-100";
   }
 
   return "bg-gray-100 text-gray-700 hover:bg-gray-100";
@@ -184,6 +235,17 @@ export function getOrderWaybill(order) {
 
 export function hasOrderWaybill(order) {
   return Boolean(getOrderWaybill(order));
+}
+
+export function getOrderEstimatedDeliveryAt(order) {
+  return order?.shipment?.estimated_delivery_at ?? null;
+}
+
+export function getOrderEstimatedDeliveryDate(order) {
+  const estimatedDeliveryAt = getOrderEstimatedDeliveryAt(order);
+  if (!estimatedDeliveryAt) return null;
+
+  return formatEstimatedDate(estimatedDeliveryAt);
 }
 
 export function isCodOrder(order) {

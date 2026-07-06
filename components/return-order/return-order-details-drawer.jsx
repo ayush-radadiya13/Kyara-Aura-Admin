@@ -213,9 +213,9 @@ export function ReturnOrderDetailsDrawer({
             <Badge className={getReturnRequestStatusClass(returnOrder.status)}>
               {formatLabel(returnOrder.status)}
             </Badge>
-            {returnOrder.shipment_return_status ? (
-              <Badge className={getReturnStatusClass(returnOrder.shipment_return_status)}>
-                {formatLabel(returnOrder.shipment_return_status)}
+            {returnOrder.return_display_status ? (
+              <Badge className={getReturnStatusClass(returnOrder.return_display_status)}>
+                {formatLabel(returnOrder.return_display_status)}
               </Badge>
             ) : null}
           </div>

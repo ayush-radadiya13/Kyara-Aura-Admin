@@ -28,6 +28,7 @@ import {
   formatDateTime,
   formatLabel,
   getOrderDeliveryStatus,
+  getOrderEstimatedDeliveryDate,
   getOrderWaybill,
 } from "./order-utils";
 
@@ -196,6 +197,19 @@ function TrackingTimeline({ currentIndex, currentKey }) {
   );
 }
 
+function EstimatedDeliveryCard({ date }) {
+  if (!date) return null;
+
+  return (
+    <div className="rounded-xl border border-[#E5E7EB] bg-muted/30 p-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        Estimated Delivery Date
+      </p>
+      <p className="mt-1 text-sm font-medium text-foreground">{date}</p>
+    </div>
+  );
+}
+
 function ShipmentInfoRow({ label, value, mono = false }) {
   return (
     <div className="flex items-center justify-between gap-4 py-2.5">
@@ -289,6 +303,7 @@ export function OrderTrackingModal({ open, onOpenChange, order, trackingState })
     order?.shipment?.updated_at ||
     order?.shipment?.last_status_update ||
     order?.updated_at;
+  const estimatedDeliveryDate = getOrderEstimatedDeliveryDate(order);
   const statusLabel =
     formatLabel(rawStatus) !== "-"
       ? formatLabel(rawStatus)
@@ -369,6 +384,12 @@ export function OrderTrackingModal({ open, onOpenChange, order, trackingState })
                 </div>
               </div>
 
+              {estimatedDeliveryDate ? (
+                <div className="mt-3">
+                  <EstimatedDeliveryCard date={estimatedDeliveryDate} />
+                </div>
+              ) : null}
+
               <div className="mt-6">
                 <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Shipment Progress
@@ -409,6 +430,7 @@ export function OrderTrackingCard({ order }) {
     order?.shipment?.updated_at ||
     order?.shipment?.last_status_update ||
     order?.updated_at;
+  const estimatedDeliveryDate = getOrderEstimatedDeliveryDate(order);
 
   return (
     <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
@@ -439,6 +461,12 @@ export function OrderTrackingCard({ order }) {
               label="Current Status"
               value={formatLabel(rawStatus) || formatLabel(currentKey)}
             />
+            {estimatedDeliveryDate ? (
+              <ShipmentInfoRow
+                label="Estimated Delivery Date"
+                value={estimatedDeliveryDate}
+              />
+            ) : null}
             <ShipmentInfoRow
               label="Last Updated"
               value={formatDateTime(lastUpdated)}

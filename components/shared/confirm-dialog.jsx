@@ -20,6 +20,7 @@ export function ConfirmDialog({
   loadingLabel = "Processing...",
   isLoading = false,
   onConfirm,
+  children,
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -28,6 +29,8 @@ export function ConfirmDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{message}</DialogDescription>
         </DialogHeader>
+
+        {children}
 
         <DialogFooter>
           <Button
