@@ -1,5 +1,7 @@
 "use client";
 
+import { MobileReturnOrdersPage } from "@/components/mobile-orders/mobile-return-orders-page";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ChevronDown, RotateCw } from "lucide-react";
@@ -35,16 +37,7 @@ const RETURN_TYPE_LABELS = {
 
 const RETURN_FILTER_QUERY_KEYS = ["search", "status"];
 
-const RETURN_STATUS_OPTIONS = [
-  { value: "all", label: "All" },
-  { value: "pending", label: "Pending" },
-  { value: "awaiting_refund", label: "Awaiting Refund" },
-  { value: "received", label: "Received" },
-  { value: "refunded", label: "Refunded" },
-  { value: "completed", label: "Completed" },
-  { value: "rejected", label: "Rejected" },
-  { value: "cancelled", label: "Cancelled" },
-];
+import { RETURN_STATUS_OPTIONS } from "@/components/return-order/return-filter-options";
 
 function getValidReturnType(type) {
   return Object.keys(RETURN_TYPE_LABELS).includes(type) ? type : undefined;
@@ -87,6 +80,16 @@ function FilterSelect({ label, value, onChange, options }) {
 }
 
 export default function ReturnOrdersPage() {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return <MobileReturnOrdersPage />;
+  }
+
+  return <DesktopReturnOrdersPage />;
+}
+
+function DesktopReturnOrdersPage() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const returnType = getValidReturnType(searchParams.get("type"));

@@ -1,5 +1,7 @@
 "use client";
 
+import { MobileOrdersPage } from "@/components/mobile-orders/mobile-orders-page";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Popover } from "@base-ui/react/popover";
 import { useSearchParams } from "next/navigation";
@@ -59,33 +61,11 @@ const ORDER_FILTER_QUERY_KEYS = [
   "shipment_created_to",
 ];
 
-const ORDER_STATUS_OPTIONS = [
-  { value: "all", label: "All" },
-  { value: "pending_admin_confirmation", label: "Pending Admin Confirmation" },
-  { value: "processing", label: "Processing" },
-  { value: "confirmed", label: "Confirmed" },
-  { value: "shipped", label: "Shipped" },
-  { value: "delivered", label: "Delivered" },
-  { value: "cancelled", label: "Cancelled" },
-];
-
-const PAYMENT_STATUS_OPTIONS = [
-  { value: "all", label: "All" },
-  { value: "pending", label: "Pending" },
-  { value: "paid", label: "Paid" },
-  { value: "failed", label: "Failed" },
-  { value: "refunded", label: "Refunded" },
-];
-
-const SHIPPING_STATUS_OPTIONS = [
-  { value: "all", label: "All" },
-  { value: "pending", label: "Pending" },
-  { value: "manifested", label: "Manifested" },
-  { value: "pickup_scheduled", label: "Pickup Scheduled" },
-  { value: "in_transit", label: "In Transit" },
-  { value: "delivered", label: "Delivered" },
-  { value: "cancelled", label: "Cancelled" },
-];
+import {
+  ORDER_STATUS_OPTIONS,
+  PAYMENT_STATUS_OPTIONS,
+  SHIPPING_STATUS_OPTIONS,
+} from "@/components/order/order-filter-options";
 
 function getValidOrderType(type) {
   return Object.keys(ORDER_TYPE_LABELS).includes(type) ? type : undefined;
@@ -341,6 +321,16 @@ function ShipmentDateRangePicker({ from, to, onRangeChange }) {
 }
 
 export default function OrdersPage() {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return <MobileOrdersPage />;
+  }
+
+  return <DesktopOrdersPage />;
+}
+
+function DesktopOrdersPage() {
   const queryClient = useQueryClient();
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
