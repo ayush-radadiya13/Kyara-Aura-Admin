@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function MobileAppHeader({
-  title = "Mobile Orders",
+  title = "Orders",
   subtitle,
   onRefresh,
   isRefreshing,

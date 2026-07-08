@@ -36,7 +36,7 @@ import {
 } from "./mobile-payment-footer";
 import { MobileSearchBar } from "./mobile-search-bar";
 import { MobileStatusChips } from "./mobile-status-chips";
-import { getOrderListStatusBadges } from "./mobile-order-status";
+import { getOrderCardPaymentBadge } from "./mobile-order-status";
 import { getOrderDateKey, groupItemsByDate } from "./mobile-order-utils";
 import { useInfiniteList } from "./use-infinite-list";
 
@@ -363,7 +363,7 @@ export function MobileOrdersPage() {
         orderNumber: order.order_number,
         amount: order.total_amount,
         createdAt: order.created_at,
-        statusBadges: getOrderListStatusBadges(order),
+        statusBadges: getOrderCardPaymentBadge(order),
         isDownloaded,
         isDownloading: downloadingOrderId === order.id,
         canDownloadSticker: hasOrderWaybill(order),
@@ -384,7 +384,7 @@ export function MobileOrdersPage() {
   return (
     <div className="relative -mx-4 -mb-4 flex h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[#f4f6f9] md:hidden">
       <MobileAppHeader
-        title="Mobile Orders"
+        title="Orders"
         subtitle={`${orderTypeLabel} · ${totalCount} order${totalCount === 1 ? "" : "s"}`}
         onRefresh={refreshOrderData}
         isRefreshing={isFetching && page === 1}

@@ -32,7 +32,7 @@ import { MobileFilterSheet } from "./mobile-filter-sheet";
 import { MobileFilterFab, MobileOrdersList } from "./mobile-orders-list";
 import { MobileSearchBar } from "./mobile-search-bar";
 import { MobileStatusChips } from "./mobile-status-chips";
-import { getReturnListStatusBadges } from "./mobile-order-status";
+import { getReturnCardPaymentBadge } from "./mobile-order-status";
 import {
   getReturnOrderDateKey,
   groupItemsByDate,
@@ -364,7 +364,7 @@ export function MobileReturnOrdersPage() {
         orderNumber: returnOrder.order_number,
         amount: returnOrder.refund_amount ?? returnOrder.order_total_amount,
         createdAt: returnOrder.requested_at,
-        statusBadges: getReturnListStatusBadges(returnOrder),
+        statusBadges: getReturnCardPaymentBadge(returnOrder),
         isDownloaded,
         isDownloading: downloadingOrderId === returnOrder.order_id,
         canDownloadSticker: Boolean(returnOrder.order_id && hasOrderWaybill(returnOrder)),

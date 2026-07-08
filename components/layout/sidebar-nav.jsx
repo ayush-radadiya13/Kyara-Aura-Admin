@@ -13,6 +13,7 @@ import {
   RotateCcw,
   Settings,
   ShoppingBag,
+  Smartphone,
   Star,
   Users,
 } from "lucide-react";
@@ -41,6 +42,7 @@ const links = {
   products: "/product",
   customers: "/customers",
   orders: "/orders",
+  mobileOrders: "/mobile-orders",
   returnOrders: "/return-orders",
   promoCode: "/promo-code",
   reviews: "/reviews",
@@ -75,6 +77,7 @@ export function SidebarNav({
   const orderType = searchParams.get("type");
   const collapsed = !isMobile && state === "collapsed";
   const ordersActive = isRouteActive(pathname, links.orders);
+  const mobileOrdersActive = isRouteActive(pathname, links.mobileOrders);
   const returnOrdersActive = isRouteActive(pathname, links.returnOrders);
   const settingsActive = isRouteActive(pathname, links.settings);
   const [ordersOpen, setOrdersOpen] = React.useState(ordersActive);
@@ -225,6 +228,20 @@ export function SidebarNav({
               </CollapsibleContent>
             </Collapsible>
           )}
+        </SidebarMenuItem>
+
+        <SidebarMenuItem className="md:hidden">
+          <SidebarMenuButton
+            render={<Link href={links.mobileOrders} onClick={onNavigate} />}
+            isActive={mobileOrdersActive}
+            tooltip={enableTooltips ? "Mobile Orders" : undefined}
+            className={topButtonClass(mobileOrdersActive)}
+          >
+            <Smartphone aria-hidden />
+            <span className={cn("truncate", collapsed && "sr-only")}>
+              Mobile Orders
+            </span>
+          </SidebarMenuButton>
         </SidebarMenuItem>
 
         <SidebarMenuItem>

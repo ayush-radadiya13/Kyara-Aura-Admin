@@ -1,7 +1,5 @@
 "use client";
 
-import { MobileReturnOrdersPage } from "@/components/mobile-orders/mobile-return-orders-page";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ChevronDown, RotateCw } from "lucide-react";
@@ -80,16 +78,6 @@ function FilterSelect({ label, value, onChange, options }) {
 }
 
 export default function ReturnOrdersPage() {
-  const isMobile = useIsMobile();
-
-  if (isMobile) {
-    return <MobileReturnOrdersPage />;
-  }
-
-  return <DesktopReturnOrdersPage />;
-}
-
-function DesktopReturnOrdersPage() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const returnType = getValidReturnType(searchParams.get("type"));

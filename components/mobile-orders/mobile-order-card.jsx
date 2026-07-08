@@ -45,7 +45,11 @@ export function MobileOrderCard({
               #{orderNumber || "-"}
             </h3>
           </div>
-          <MobileStatusBadgeGroup badges={statusBadges} className="max-w-[55%]" />
+          <MobileStatusBadgeGroup
+            badges={statusBadges}
+            className="max-w-[40%]"
+            large
+          />
         </div>
 
         <div className="space-y-1">
@@ -71,10 +75,10 @@ export function MobileOrderCard({
         </div>
       </div>
 
-      <div className="mt-4 space-y-2 border-t border-gray-100 pt-4">
+      <div className="mt-4 flex gap-2 border-t border-gray-100 pt-4">
         <Button
           type="button"
-          className="h-11 w-full rounded-xl"
+          className="h-11 min-w-0 flex-1 rounded-xl"
           onClick={onView}
         >
           View Details
@@ -86,23 +90,23 @@ export function MobileOrderCard({
               type="button"
               variant="outline"
               disabled
-              className="h-11 w-full rounded-xl border-green-200 bg-green-50 text-green-700"
+              className="h-11 min-w-0 flex-1 rounded-xl border-green-200 bg-green-50 px-2 text-green-700"
             >
-              <CheckCircle className="size-4" />
-              Sticker Downloaded
+              <CheckCircle className="size-4 shrink-0" />
+              <span className="truncate text-xs sm:text-sm">Downloaded</span>
             </Button>
           ) : (
             <Button
               type="button"
               variant="outline"
-              className="h-11 w-full rounded-xl"
+              className="h-11 min-w-0 flex-1 rounded-xl px-2"
               disabled={isDownloading}
               onClick={onDownloadSticker}
             >
               {isDownloading ? (
-                <Loader2 className="size-4 animate-spin" />
+                <Loader2 className="size-4 shrink-0 animate-spin" />
               ) : null}
-              Download Sticker
+              <span className="truncate text-xs sm:text-sm">Download Sticker</span>
             </Button>
           )
         ) : null}

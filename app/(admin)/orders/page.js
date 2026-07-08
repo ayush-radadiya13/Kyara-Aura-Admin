@@ -1,7 +1,5 @@
 "use client";
 
-import { MobileOrdersPage } from "@/components/mobile-orders/mobile-orders-page";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Popover } from "@base-ui/react/popover";
 import { useSearchParams } from "next/navigation";
@@ -321,16 +319,6 @@ function ShipmentDateRangePicker({ from, to, onRangeChange }) {
 }
 
 export default function OrdersPage() {
-  const isMobile = useIsMobile();
-
-  if (isMobile) {
-    return <MobileOrdersPage />;
-  }
-
-  return <DesktopOrdersPage />;
-}
-
-function DesktopOrdersPage() {
   const queryClient = useQueryClient();
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
