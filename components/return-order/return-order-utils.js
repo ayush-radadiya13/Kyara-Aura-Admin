@@ -198,6 +198,12 @@ export function normalizeReturnOrder(item) {
     payment_method: item?.payment_method ?? "",
     order_status: item?.order_status ?? "",
     shipment: item?.shipment ?? null,
+    is_downloaded: Boolean(
+      item?.is_downloaded ??
+        item?.shipment?.is_downloaded ??
+        item?.order?.is_downloaded ??
+        item?.order?.shipment?.is_downloaded
+    ),
     order: item?.order ?? null,
     estimated_return_at: item?.estimated_return_at ?? null,
     shipment_return_status: item?.shipment_return_status ?? "",

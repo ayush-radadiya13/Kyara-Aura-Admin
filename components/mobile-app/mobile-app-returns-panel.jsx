@@ -1,26 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { Download, Filter, Loader2 } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { BULK_LABEL_DOWNLOAD_LIMIT } from "@/components/order/order-columns";
 import {
+  hasOrderLabelBeenDownloaded,
   hasOrderWaybill,
   normalizeOrderId,
   persistDownloadedLabelOrderIds,
   readDownloadedLabelOrderIds,
 } from "@/components/order/order-utils";
-import { ReturnOrderDetailsDrawer } from "@/components/return-order/return-order-details-drawer";
-import { formatCurrency } from "@/components/return-order/return-order-utils";
-import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import {
   useBulkDownloadOrderShipmentLabels,
   useDownloadOrderShipmentLabel,
 } from "@/hooks/admin/module/use-orders";
-import { usePayReturnRefund } from "@/hooks/admin/module/use-return-orders";
-import { RETURN_STATUS_OPTIONS } from "@/components/return-order/return-filter-options";
-import { MobileFilterSheet } from "@/components/mobile-orders/mobile-filter-sheet";
 import { MobileAppHeader } from "@/components/mobile-orders/mobile-app-header";
 import { MobileOrderListSkeleton } from "@/components/mobile-orders/mobile-order-card-skeleton";
 import { getReturnCardPaymentBadge } from "@/components/mobile-orders/mobile-order-status";
@@ -35,7 +31,8 @@ import { MobileSelectableOrderCard } from "./mobile-selectable-order-card";
 import { MOBILE_APP_BOTTOM_NAV_OFFSET } from "./mobile-app-bottom-nav";
 import { useCombinedReturnOrders } from "./use-combined-orders";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+
+const DEFAULT_FILTERS = { search: "", status: "all" };
 
 function getDownloadableReturnOrderIds(returnOrders) {
   return returnOrders
@@ -46,13 +43,9 @@ function getDownloadableReturnOrderIds(returnOrders) {
 }
 
 export function MobileAppReturnsPanel() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState("all");
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [selectedReturnOrder, setSelectedReturnOrder] = useState(null);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [returnOrderToPay, setReturnOrderToPay] = useState(null);
   const [downloadingOrderId, setDownloadingOrderId] = useState(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
   const [activeDateKey, setActiveDateKey] = useState(null);
@@ -60,8 +53,8 @@ export function MobileAppReturnsPanel() {
     readDownloadedLabelOrderIds
   );
 
-  const filters = useMemo(() => ({ search: "", status }), [status]);
-  const resetKey = JSON.stringify(filters);
+  const filters = DEFAULT_FILTERS;
+  const resetKey = "returns";
 
   useEffect(() => {
     setPage(1);
@@ -171,16 +164,6 @@ export function MobileAppReturnsPanel() {
         ),
     });
 
-  const { mutate: payReturnRefund, isPending: isPayingRefund } = usePayReturnRefund({
-    onSuccess: async (res) => {
-      toast.success(res?.message || "Refund payment processed successfully");
-      await refreshReturnOrders();
-    },
-    onError: (error) =>
-      toast.error(error?.response?.data?.message || "Refund payment failed"),
-    onSettled: () => setReturnOrderToPay(null),
-  });
-
   const handleToggleSelect = useCallback((returnOrder) => {
     const orderId = Number(returnOrder?.order_id);
     if (!orderId || !hasOrderWaybill(returnOrder)) return;
@@ -224,10 +207,14 @@ export function MobileAppReturnsPanel() {
     [downloadOrderShipmentLabel]
   );
 
-  const handleViewDetails = useCallback((returnOrder) => {
-    setSelectedReturnOrder(returnOrder);
-    setIsDetailsOpen(true);
-  }, []);
+  const handleViewDetails = useCallback(
+    (returnOrder) => {
+      const returnRequestId = returnOrder?.return_request_id;
+      if (!returnRequestId) return;
+      router.push(`/mobile-orders/returns/${returnRequestId}`);
+    },
+    [router]
+  );
 
   return (
     <>
@@ -299,7 +286,10 @@ export function MobileAppReturnsPanel() {
                     amount={returnOrder.refund_amount ?? returnOrder.order_total_amount}
                     createdAt={returnOrder.requested_at}
                     statusBadges={getReturnCardPaymentBadge(returnOrder)}
-                    isDownloaded={downloadedLabelOrderIds.includes(orderId)}
+                    isDownloaded={hasOrderLabelBeenDownloaded(
+                      returnOrder,
+                      downloadedLabelOrderIds
+                    )}
                     isDownloading={downloadingOrderId === returnOrder.order_id}
                     canDownloadSticker={canSelect}
                     isSelectable={canSelect}
@@ -331,70 +321,6 @@ export function MobileAppReturnsPanel() {
           </div>
         </>
       )}
-
-      <button
-        type="button"
-        aria-label="Open filters"
-        onClick={() => setIsFilterOpen(true)}
-        className={cn(
-          "fixed right-4 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-transform active:scale-95"
-        )}
-        style={{ bottom: `calc(${MOBILE_APP_BOTTOM_NAV_OFFSET} + 1rem)` }}
-      >
-        <Filter className="size-5" />
-      </button>
-
-      <MobileFilterSheet
-        open={isFilterOpen}
-        onOpenChange={setIsFilterOpen}
-        mode="return"
-        filters={{
-          status,
-          returnStatusOptions: RETURN_STATUS_OPTIONS,
-        }}
-        onApply={(nextFilters) => {
-          setStatus(nextFilters.status || "all");
-        }}
-        onReset={() => setStatus("all")}
-      />
-
-      <ReturnOrderDetailsDrawer
-        open={isDetailsOpen}
-        onOpenChange={(open) => {
-          setIsDetailsOpen(open);
-          if (!open) setSelectedReturnOrder(null);
-        }}
-        returnOrder={selectedReturnOrder}
-        onPayRefund={setReturnOrderToPay}
-        isPayingRefund={isPayingRefund}
-      />
-
-      <ConfirmDialog
-        open={Boolean(returnOrderToPay)}
-        onOpenChange={(open) => {
-          if (!open && !isPayingRefund) setReturnOrderToPay(null);
-        }}
-        title="Confirm Refund Payment"
-        message={
-          returnOrderToPay
-            ? `Are you sure you want to pay ${formatCurrency(returnOrderToPay.refund_amount)} refund for order ${returnOrderToPay.order_number || returnOrderToPay.order_id}?`
-            : "Are you sure you want to process this refund?"
-        }
-        confirmLabel="Pay Refund"
-        loadingLabel="Processing..."
-        isLoading={isPayingRefund}
-        onConfirm={() => {
-          const orderId = returnOrderToPay?.order_id;
-          const returnRequestId = returnOrderToPay?.return_request_id;
-
-          if (!orderId || !returnRequestId) {
-            toast.error("Missing order or return request details");
-            return;
-          }
-
-          payReturnRefund({ orderId, returnRequestId });
-        }}
-      />
     </>
   );
 }

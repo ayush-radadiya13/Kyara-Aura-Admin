@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { Download, Filter, Loader2 } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { BULK_LABEL_DOWNLOAD_LIMIT } from "@/components/order/order-columns";
 import {
+  hasOrderLabelBeenDownloaded,
   hasOrderWaybill,
   normalizeOrderId,
   persistDownloadedLabelOrderIds,
@@ -16,13 +17,7 @@ import {
   useBulkDownloadOrderShipmentLabels,
   useDownloadOrderShipmentLabel,
 } from "@/hooks/admin/module/use-orders";
-import {
-  ORDER_STATUS_OPTIONS,
-  PAYMENT_STATUS_OPTIONS,
-  SHIPPING_STATUS_OPTIONS,
-  MOBILE_PAGE_SIZE,
-} from "@/components/mobile-orders/mobile-order-constants";
-import { MobileFilterSheet } from "@/components/mobile-orders/mobile-filter-sheet";
+import { MOBILE_PAGE_SIZE } from "@/components/mobile-orders/mobile-order-constants";
 import { MobileAppHeader } from "@/components/mobile-orders/mobile-app-header";
 import { MobileOrderListSkeleton } from "@/components/mobile-orders/mobile-order-card-skeleton";
 import { getOrderCardPaymentBadge } from "@/components/mobile-orders/mobile-order-status";
@@ -36,7 +31,15 @@ import { MobileSelectableOrderCard } from "./mobile-selectable-order-card";
 import { MOBILE_APP_BOTTOM_NAV_OFFSET } from "./mobile-app-bottom-nav";
 import { useCombinedOrders } from "./use-combined-orders";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+
+const DEFAULT_FILTERS = {
+  search: "",
+  status: "all",
+  payment_status: "all",
+  shipping_status: "all",
+  shipment_created_from: "",
+  shipment_created_to: "",
+};
 
 function getDownloadableOrderIds(orders) {
   return orders
@@ -50,12 +53,6 @@ export function MobileAppOrdersPanel() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState("all");
-  const [paymentStatus, setPaymentStatus] = useState("all");
-  const [shippingStatus, setShippingStatus] = useState("all");
-  const [shipmentCreatedFrom, setShipmentCreatedFrom] = useState("");
-  const [shipmentCreatedTo, setShipmentCreatedTo] = useState("");
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [downloadingOrderId, setDownloadingOrderId] = useState(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
   const [activeDateKey, setActiveDateKey] = useState(null);
@@ -63,25 +60,8 @@ export function MobileAppOrdersPanel() {
     readDownloadedLabelOrderIds
   );
 
-  const filters = useMemo(
-    () => ({
-      search: "",
-      status,
-      payment_status: paymentStatus,
-      shipping_status: shippingStatus,
-      shipment_created_from: shipmentCreatedFrom,
-      shipment_created_to: shipmentCreatedTo,
-    }),
-    [
-      paymentStatus,
-      shipmentCreatedFrom,
-      shipmentCreatedTo,
-      shippingStatus,
-      status,
-    ]
-  );
-
-  const resetKey = JSON.stringify(filters);
+  const filters = DEFAULT_FILTERS;
+  const resetKey = "orders";
 
   useEffect(() => {
     setPage(1);
@@ -243,14 +223,6 @@ export function MobileAppOrdersPanel() {
     [router]
   );
 
-  const handleResetFilters = useCallback(() => {
-    setStatus("all");
-    setPaymentStatus("all");
-    setShippingStatus("all");
-    setShipmentCreatedFrom("");
-    setShipmentCreatedTo("");
-  }, []);
-
   return (
     <>
       <MobileAppHeader
@@ -318,7 +290,10 @@ export function MobileAppOrdersPanel() {
                     amount={order.total_amount}
                     createdAt={order.created_at}
                     statusBadges={getOrderCardPaymentBadge(order)}
-                    isDownloaded={downloadedLabelOrderIds.includes(orderId)}
+                    isDownloaded={hasOrderLabelBeenDownloaded(
+                      order,
+                      downloadedLabelOrderIds
+                    )}
                     isDownloading={downloadingOrderId === order.id}
                     canDownloadSticker={canSelect}
                     isSelectable={canSelect}
@@ -350,42 +325,6 @@ export function MobileAppOrdersPanel() {
           </div>
         </>
       )}
-
-      <button
-        type="button"
-        aria-label="Open filters"
-        onClick={() => setIsFilterOpen(true)}
-        className={cn(
-          "fixed right-4 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-transform active:scale-95"
-        )}
-        style={{ bottom: `calc(${MOBILE_APP_BOTTOM_NAV_OFFSET} + 1rem)` }}
-      >
-        <Filter className="size-5" />
-      </button>
-
-      <MobileFilterSheet
-        open={isFilterOpen}
-        onOpenChange={setIsFilterOpen}
-        mode="order"
-        filters={{
-          status,
-          payment_status: paymentStatus,
-          shipping_status: shippingStatus,
-          shipment_created_from: shipmentCreatedFrom,
-          shipment_created_to: shipmentCreatedTo,
-          orderStatusOptions: ORDER_STATUS_OPTIONS,
-          paymentStatusOptions: PAYMENT_STATUS_OPTIONS,
-          shippingStatusOptions: SHIPPING_STATUS_OPTIONS,
-        }}
-        onApply={(nextFilters) => {
-          setStatus(nextFilters.status || "all");
-          setPaymentStatus(nextFilters.payment_status || "all");
-          setShippingStatus(nextFilters.shipping_status || "all");
-          setShipmentCreatedFrom(nextFilters.shipment_created_from || "");
-          setShipmentCreatedTo(nextFilters.shipment_created_to || "");
-        }}
-        onReset={handleResetFilters}
-      />
     </>
   );
 }

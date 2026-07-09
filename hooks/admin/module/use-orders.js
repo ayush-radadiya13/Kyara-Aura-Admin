@@ -90,7 +90,8 @@ export function useDownloadOrderShipmentLabel(options) {
       if (!orderId) throw new Error("Missing order ID");
 
       const res = await customAxios.get(
-        ADMIN_API_ROUTES.DOWNLOAD_ORDER_SHIPMENT_LABEL(orderId)
+        ADMIN_API_ROUTES.DOWNLOAD_ORDER_SHIPMENT_LABEL(orderId),
+        { params: { is_downloaded: true } }
       );
 
       const payload = res.data?.data ?? res.data;
@@ -130,7 +131,7 @@ export function useBulkDownloadOrderShipmentLabels(options) {
 
       const res = await customAxios.post(
         ADMIN_API_ROUTES.BULK_DOWNLOAD_ORDER_SHIPMENT_LABELS,
-        { order_ids: orderIds },
+        { order_ids: orderIds, is_downloaded: true },
         { responseType: "blob" }
       );
 

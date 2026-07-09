@@ -1,11 +1,34 @@
+import { ORDER_STATUSES, SHIPMENT_STATUSES } from "./order-status-constants";
+
+const ORDER_STATUS_LABELS = {
+  pending: "Pending",
+  processing: "Processing",
+  shipped: "Shipped",
+  delivered: "Delivered",
+  return_requested: "Return Requested",
+  returned: "Returned",
+  cancelled: "Cancelled",
+};
+
+const SHIPMENT_STATUS_LABELS = {
+  manifested: "Manifested",
+  pickup_scheduled: "Pickup Scheduled",
+  pickup_pending: "Pickup Pending",
+  picked_up: "Picked Up",
+  in_transit: "In Transit",
+  out_for_delivery: "Out for Delivery",
+  delivered: "Delivered",
+  rto: "RTO",
+  cancelled: "Cancelled",
+  failed: "Failed",
+};
+
 export const ORDER_STATUS_OPTIONS = [
   { value: "all", label: "All" },
-  { value: "pending_admin_confirmation", label: "Pending Admin Confirmation" },
-  { value: "processing", label: "Processing" },
-  { value: "confirmed", label: "Confirmed" },
-  { value: "shipped", label: "Shipped" },
-  { value: "delivered", label: "Delivered" },
-  { value: "cancelled", label: "Cancelled" },
+  ...ORDER_STATUSES.map((value) => ({
+    value,
+    label: ORDER_STATUS_LABELS[value] ?? value,
+  })),
 ];
 
 export const PAYMENT_STATUS_OPTIONS = [
@@ -18,10 +41,8 @@ export const PAYMENT_STATUS_OPTIONS = [
 
 export const SHIPPING_STATUS_OPTIONS = [
   { value: "all", label: "All" },
-  { value: "pending", label: "Pending" },
-  { value: "manifested", label: "Manifested" },
-  { value: "pickup_scheduled", label: "Pickup Scheduled" },
-  { value: "in_transit", label: "In Transit" },
-  { value: "delivered", label: "Delivered" },
-  { value: "cancelled", label: "Cancelled" },
+  ...SHIPMENT_STATUSES.map((value) => ({
+    value,
+    label: SHIPMENT_STATUS_LABELS[value] ?? value,
+  })),
 ];

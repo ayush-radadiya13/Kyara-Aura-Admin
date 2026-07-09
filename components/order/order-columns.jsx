@@ -16,6 +16,7 @@ import {
   getOrderDeliveryStatus,
   getOrderStatusClass,
   getPaymentStatusClass,
+  hasOrderLabelBeenDownloaded,
   hasOrderWaybill,
   normalizeOrderId,
 } from "./order-utils";
@@ -59,9 +60,10 @@ export function getOrderColumns(loading, shipmentActions = {}) {
         const isDownloadingLabel =
           normalizeOrderId(actionOrderId) === normalizedOrderId &&
           actionType === "download-label";
-        const isLabelDownloaded =
-          normalizedOrderId != null &&
-          downloadedLabelOrderIds.includes(normalizedOrderId);
+        const isLabelDownloaded = hasOrderLabelBeenDownloaded(
+          order,
+          downloadedLabelOrderIds
+        );
 
         return (
           <div className="flex justify-start items-center gap-1">
@@ -130,7 +132,9 @@ export function getOrderColumns(loading, shipmentActions = {}) {
                       {isDownloadingLabel ? (
                         <Loader2 className="size-4 animate-spin" />
                       ) : (
-                        <Download className="size-4" />
+                        <Download
+                          className={`size-4${isLabelDownloaded ? " text-green-600" : ""}`}
+                        />
                       )}
                     </Button>
                   }

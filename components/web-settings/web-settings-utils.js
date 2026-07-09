@@ -12,6 +12,8 @@ export const defaultWebSettings = {
   buy_two_get_one_free_enabled: false,
   first_order_discount_amount: 0,
   online_payment_discount_percent: 0,
+  shipping_amount: 0,
+  cod_charge: 0,
   offer_line1: "",
   offer_line2: "",
   offer_line3: "",
@@ -107,6 +109,11 @@ export function normalizeWebSettings(settings) {
         settings?.onlinePaymentDiscountPercent,
       0
     ),
+    shipping_amount: toNumber(
+      settings?.shipping_amount ?? settings?.shippingAmount,
+      0
+    ),
+    cod_charge: toNumber(settings?.cod_charge ?? settings?.codCharge, 0),
     offer_line1: settings?.offer_line1 ?? settings?.offerLine1 ?? "",
     offer_line2: settings?.offer_line2 ?? settings?.offerLine2 ?? "",
     offer_line3: settings?.offer_line3 ?? settings?.offerLine3 ?? "",
@@ -135,6 +142,8 @@ export function buildWebSettingsPayload(settings) {
       settings.online_payment_discount_percent,
       0
     ),
+    shipping_amount: toNumber(settings.shipping_amount, 0),
+    cod_charge: toNumber(settings.cod_charge, 0),
     offer_line1: toNullableString(settings.offer_line1),
     offer_line2: toNullableString(settings.offer_line2),
     offer_line3: toNullableString(settings.offer_line3),

@@ -455,6 +455,65 @@ export function WebSettingsManager() {
 
           <div className="space-y-4 rounded-lg border border-border p-4">
             <div>
+              <h3 className="text-sm font-medium">Shipping & COD</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Default charges applied to storefront orders.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="web-settings-shipping-amount">Shipping Amount</Label>
+                <div className="relative">
+                  <Input
+                    id="web-settings-shipping-amount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0"
+                    className="pr-10"
+                    value={currentValues.shipping_amount}
+                    onChange={(event) =>
+                      updateField(
+                        "shipping_amount",
+                        event.target.value === "" ? 0 : Number(event.target.value)
+                      )
+                    }
+                    disabled={actionDisabled}
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                    Rs
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="web-settings-cod-charge">COD Charge</Label>
+                <div className="relative">
+                  <Input
+                    id="web-settings-cod-charge"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0"
+                    className="pr-10"
+                    value={currentValues.cod_charge}
+                    onChange={(event) =>
+                      updateField(
+                        "cod_charge",
+                        event.target.value === "" ? 0 : Number(event.target.value)
+                      )
+                    }
+                    disabled={actionDisabled}
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                    Rs
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4 rounded-lg border border-border p-4">
+            <div>
               <h3 className="text-sm font-medium">Social Links</h3>
               <p className="mt-1 text-sm text-muted-foreground">
                 These URLs appear on the storefront footer and WhatsApp button.

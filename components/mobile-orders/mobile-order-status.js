@@ -13,31 +13,36 @@ import {
 } from "@/components/return-order/return-order-utils";
 
 export function getOrderCardPaymentBadge(order) {
-  if (isCodOrder(order)) {
-    return [
-      {
-        className: getPaymentMethodClass("cod"),
-        label: "COD",
-      },
-    ];
-  }
+  const badges = [];
 
-  const paymentStatus = String(order?.payment_status || "").toLowerCase();
-  if (["paid", "captured", "success"].includes(paymentStatus)) {
-    return [
-      {
+  if (isCodOrder(order)) {
+    badges.push({
+      className: getPaymentMethodClass("cod"),
+      label: "COD",
+    });
+  } else {
+    const paymentStatus = String(order?.payment_status || "").toLowerCase();
+    if (["paid", "captured", "success"].includes(paymentStatus)) {
+      badges.push({
         className: getPaymentStatusClass("paid"),
         label: "Paid",
-      },
-    ];
+      });
+    } else {
+      badges.push({
+        className: getPaymentStatusClass(order?.payment_status),
+        label: formatLabel(order?.payment_status) || "Online",
+      });
+    }
   }
 
-  return [
-    {
-      className: getPaymentStatusClass(order?.payment_status),
-      label: formatLabel(order?.payment_status) || "Online",
-    },
-  ];
+  if (order?.status) {
+    badges.push({
+      className: getOrderStatusClass(order?.status),
+      label: formatLabel(order?.status),
+    });
+  }
+
+  return badges;
 }
 
 export function getOrderListStatusBadges(order) {

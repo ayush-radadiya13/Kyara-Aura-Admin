@@ -1,9 +1,25 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { normalizeReturnOrder } from "@/components/return-order/return-order-utils";
 import { ADMIN_API_ROUTES } from "@/lib/routes";
 import { customAxios } from "@/utils/api";
+
+export function findReturnOrderInCache(queryClient, returnRequestId) {
+  if (!returnRequestId) return null;
+
+  const queries = queryClient.getQueriesData({ queryKey: ["return-orders"] });
+
+  for (const [, data] of queries) {
+    const items = normalizeReturnOrdersResponse(data);
+    const found = items.find(
+      (item) => String(item.return_request_id) === String(returnRequestId)
+    );
+    if (found) return found;
+  }
+
+  return null;
+}
 
 function cleanParams(params) {
   return Object.fromEntries(
@@ -39,6 +55,41 @@ export function useReturnOrders(page, pageSize, filters, type) {
 
 export function normalizeReturnOrdersResponse(data) {
   return (data?.data || data?.results || []).map(normalizeReturnOrder);
+}
+
+export function useReturnOrderDetails(returnRequestId) {
+  const queryClient = useQueryClient();
+
+  return useQuery({
+    queryKey: ["return-order", returnRequestId],
+    queryFn: async () => {
+      const cachedOrder = findReturnOrderInCache(queryClient, returnRequestId);
+      if (cachedOrder) return cachedOrder;
+
+      const res = await customAxios.get(ADMIN_API_ROUTES.GET_RETURN_ORDERS, {
+        params: {
+          search: returnRequestId,
+          per_page: 50,
+        },
+      });
+
+      const items = normalizeReturnOrdersResponse(res.data);
+      const found = items.find(
+        (item) => String(item.return_request_id) === String(returnRequestId)
+      );
+
+      if (!found) {
+        throw new Error("Return order not found");
+      }
+
+      return found;
+    },
+    enabled: Boolean(returnRequestId),
+    placeholderData: () =>
+      findReturnOrderInCache(queryClient, returnRequestId) ?? undefined,
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+  });
 }
 
 export function usePayReturnRefund(options) {

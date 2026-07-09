@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { BULK_LABEL_DOWNLOAD_LIMIT } from "@/components/order/order-columns";
 import { OrderDetailsDrawer } from "@/components/order/order-details-drawer";
 import {
+  hasOrderLabelBeenDownloaded,
   hasOrderWaybill,
   normalizeOrderId,
   persistDownloadedLabelOrderIds,
@@ -355,8 +356,10 @@ export function MobileOrdersPage() {
 
   const renderCardProps = useCallback(
     (order) => {
-      const orderId = normalizeOrderId(order.id);
-      const isDownloaded = downloadedLabelOrderIds.includes(orderId);
+      const isDownloaded = hasOrderLabelBeenDownloaded(
+        order,
+        downloadedLabelOrderIds
+      );
 
       return {
         key: order.id,

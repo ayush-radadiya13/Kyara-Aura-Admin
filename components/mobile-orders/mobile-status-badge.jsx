@@ -30,7 +30,7 @@ export function MobileStatusBadgeGroup({ badges, className, large = false }) {
   if (visibleBadges.length === 0) return null;
 
   return (
-    <div className={cn("flex flex-wrap justify-end gap-1", className)}>
+    <div className={cn("flex flex-col items-end gap-1", className)}>
       {visibleBadges.map((badge) => (
         <MobileStatusBadge
           key={`${badge.label}-${badge.className}`}
