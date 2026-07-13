@@ -167,13 +167,25 @@ export default function ReturnOrdersPage() {
   const handleConfirmPayRefund = useCallback(() => {
     const orderId = returnOrderToPay?.order_id;
     const returnRequestId = returnOrderToPay?.return_request_id;
+    const isCod =
+      String(returnOrderToPay?.payment_method || "").toLowerCase() === "cod";
+    const upiTransactionReference = returnOrderToPay?.refund_details?.upi_id;
 
     if (!orderId || !returnRequestId) {
       toast.error("Missing order or return request details");
       return;
     }
 
-    payReturnRefund({ orderId, returnRequestId });
+    if (isCod && !upiTransactionReference) {
+      toast.error("Missing UPI ID for COD refund");
+      return;
+    }
+
+    payReturnRefund({
+      orderId,
+      returnRequestId,
+      ...(isCod ? { upiTransactionReference } : {}),
+    });
   }, [payReturnRefund, returnOrderToPay]);
 
   const activeReturnOrder = useMemo(() => {

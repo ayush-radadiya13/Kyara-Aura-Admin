@@ -94,13 +94,18 @@ export function useReturnOrderDetails(returnRequestId) {
 
 export function usePayReturnRefund(options) {
   return useMutation({
-    mutationFn: async ({ orderId, returnRequestId }) => {
+    mutationFn: async ({ orderId, returnRequestId, upiTransactionReference }) => {
       if (!orderId) throw new Error("Missing order ID");
       if (!returnRequestId) throw new Error("Missing return request ID");
 
+      const payload = { return_request_id: returnRequestId };
+      if (upiTransactionReference) {
+        payload.upi_transaction_reference = upiTransactionReference;
+      }
+
       const res = await customAxios.post(
         ADMIN_API_ROUTES.PAY_RETURN_REFUND(orderId),
-        { return_request_id: returnRequestId }
+        payload
       );
 
       return res.data;

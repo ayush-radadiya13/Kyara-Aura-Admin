@@ -1,6 +1,7 @@
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
+import { DisableNumberInputWheel } from "@/components/providers/disable-number-input-wheel";
 import { QueryProvider } from "@/components/providers/query-provider";
 
 const poppins = Poppins({
@@ -24,6 +25,7 @@ export default function RootLayout({ children }) {
     <html lang="en" className={`${poppins.variable} h-full antialiased`}>
       <body className="min-h-full bg-background font-sans text-foreground">
         <QueryProvider>
+          <DisableNumberInputWheel />
           {children}
           <Toaster richColors position="top-right" />
         </QueryProvider>
