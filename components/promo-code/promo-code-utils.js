@@ -158,6 +158,7 @@ export function normalizeScratchCardCoupon(item) {
   return {
     id: item?.id ?? item?._id ?? null,
     code: item?.code ?? "",
+    order_number: item?.order?.order_number ?? item?.order_number ?? "",
     discount_percent: item?.discount_percent ?? 0,
     discount_amount: item?.discount_amount ?? 0,
     is_redeemed: Boolean(item?.is_redeemed),

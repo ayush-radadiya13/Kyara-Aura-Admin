@@ -208,8 +208,15 @@ export default function ReturnOrdersPage() {
         payingReturnRequestId: isPayingRefund
           ? returnOrderToPay?.return_request_id
           : null,
+        returnType,
       }),
-    [handlePayRefund, isPayingRefund, returnOrderToPay?.return_request_id, tableLoading]
+    [
+      handlePayRefund,
+      isPayingRefund,
+      returnOrderToPay?.return_request_id,
+      returnType,
+      tableLoading,
+    ]
   );
 
   if (!returnType) {

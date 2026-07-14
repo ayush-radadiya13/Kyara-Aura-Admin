@@ -230,7 +230,7 @@ export function SizeManager() {
             <DialogHeader>
               <DialogTitle>{formValues.id ? "Edit Size" : "Add Size"}</DialogTitle>
               <DialogDescription>
-                Sizes are saved with name, sort order, active status, and edit value.
+                Sizes are saved with name, active status, and edit value.
               </DialogDescription>
             </DialogHeader>
 
@@ -244,23 +244,6 @@ export function SizeManager() {
                   setFormValues((current) => ({
                     ...current,
                     name: event.target.value,
-                  }))
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="size-sort-order">Sort Order</Label>
-              <Input
-                id="size-sort-order"
-                type="number"
-                min="0"
-                placeholder="1"
-                value={formValues.sort_order}
-                onChange={(event) =>
-                  setFormValues((current) => ({
-                    ...current,
-                    sort_order: event.target.value,
                   }))
                 }
               />

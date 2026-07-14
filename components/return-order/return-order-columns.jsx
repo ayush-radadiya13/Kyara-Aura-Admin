@@ -8,13 +8,13 @@ import {
   formatCurrency,
   formatDateTime,
   formatLabel,
-  getPaymentMethodClass,
   getReturnItemSummary,
   getReturnRequestStatusClass,
 } from "./return-order-utils";
 
 export function getReturnOrderColumns(loading, actions = {}) {
-  const { onPayRefund, payingReturnRequestId } = actions;
+  const { onPayRefund, payingReturnRequestId, returnType } = actions;
+  const isCod = returnType === "cod";
 
   return (_sortAttr, _sort, _onSort, _onDelete, onViewDetails) => [
     {
@@ -77,20 +77,21 @@ export function getReturnOrderColumns(loading, actions = {}) {
         <span className="font-medium">{row.original?.customer?.name || "-"}</span>
       ),
     },
-    {
-      accessorKey: "payment_method",
-      header: "Payment",
-      meta: { width: "110px" },
-      cell: ({ row }) => {
-        const method = row.getValue("payment_method");
-
-        return (
-          <Badge className={getPaymentMethodClass(method)}>
-            {formatLabel(method)}
-          </Badge>
-        );
-      },
-    },
+    ...(isCod
+      ? [
+          {
+            id: "upi_id",
+            header: "UPI ID",
+            meta: { width: "180px" },
+            accessorFn: (row) => row?.refund_details?.upi_id ?? "",
+            cell: ({ row }) => (
+              <span className="font-mono text-sm">
+                {row.original?.refund_details?.upi_id || "-"}
+              </span>
+            ),
+          },
+        ]
+      : []),
     {
       accessorKey: "status",
       header: "Return Status",

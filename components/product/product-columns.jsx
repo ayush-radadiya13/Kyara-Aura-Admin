@@ -61,14 +61,6 @@ export function getProductColumns(loading) {
       ),
     },
     {
-      accessorKey: "slug",
-      header: "Slug",
-      meta: { width: "230px" },
-      cell: ({ row }) => (
-        <span>{row.getValue("slug") || "-"}</span>
-      ),
-    },
-    {
       accessorKey: "discount_percentage",
       header: "Discount",
       meta: { width: "100px" },

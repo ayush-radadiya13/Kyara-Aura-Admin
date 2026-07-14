@@ -23,6 +23,14 @@ export function getPromoCodeColumns() {
       ),
     },
     {
+      accessorKey: "order_number",
+      header: "Order Number",
+      meta: { width: "160px" },
+      cell: ({ row }) => (
+        <span className="font-medium">{row.getValue("order_number") || "-"}</span>
+      ),
+    },
+    {
       accessorKey: "discount_percent",
       header: "Discount %",
       meta: { width: "120px" },

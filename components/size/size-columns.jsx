@@ -4,6 +4,10 @@ import { Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
+function isFreeSize(size) {
+  return String(size?.name ?? "").trim().toLowerCase() === "free size";
+}
+
 export function getSizeColumns(loading, offset = 0) {
   return (_sortAttr, _sort, _onSort, onDelete, onEdit) => [
     {
@@ -48,27 +52,33 @@ export function getSizeColumns(loading, offset = 0) {
       id: "actions",
       header: () => <div className="text-right">Actions</div>,
       meta: { width: "100px" },
-      cell: ({ row }) => (
-        <div className="flex justify-end gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="mr-1"
-            onClick={() => onEdit?.(row.original)}
-            disabled={loading}
-          >
-            <Pencil className="size-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onDelete?.(row.original)}
-            disabled={loading}
-          >
-            <Trash2 className="size-4 text-destructive" />
-          </Button>
-        </div>
-      ),
+      cell: ({ row }) => {
+        if (isFreeSize(row.original)) {
+          return null;
+        }
+
+        return (
+          <div className="flex justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="mr-1"
+              onClick={() => onEdit?.(row.original)}
+              disabled={loading}
+            >
+              <Pencil className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onDelete?.(row.original)}
+              disabled={loading}
+            >
+              <Trash2 className="size-4 text-destructive" />
+            </Button>
+          </div>
+        );
+      },
     },
   ];
 }
