@@ -18,7 +18,7 @@ export default function CreateProductPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
-  const { data } = useCategories(1, 100, "", "all");
+  const { data } = useCategories(1, 100, "", "all", "sub");
   const { data: sizes = [] } = useSizeOptions();
 
   const categories = useMemo(

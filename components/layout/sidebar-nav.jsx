@@ -39,6 +39,7 @@ import {
 const links = {
   dashboard: "/dashboard",
   category: "/category",
+  subCategory: "/sub-category",
   products: "/product",
   customers: "/customers",
   orders: "/orders",
@@ -80,12 +81,16 @@ export function SidebarNav({
   const mobileOrdersActive = isRouteActive(pathname, links.mobileOrders);
   const returnOrdersActive = isRouteActive(pathname, links.returnOrders);
   const settingsActive = isRouteActive(pathname, links.settings);
+  const categoryActive =
+    isRouteActive(pathname, links.category) || isRouteActive(pathname, links.subCategory);
   const [ordersOpen, setOrdersOpen] = React.useState(ordersActive);
   const [returnOrdersOpen, setReturnOrdersOpen] = React.useState(returnOrdersActive);
   const [settingsOpen, setSettingsOpen] = React.useState(settingsActive);
+  const [categoryOpen, setCategoryOpen] = React.useState(categoryActive);
   const effectiveOrdersOpen = ordersActive || ordersOpen;
   const effectiveReturnOrdersOpen = returnOrdersActive || returnOrdersOpen;
   const effectiveSettingsOpen = settingsActive || settingsOpen;
+  const effectiveCategoryOpen = categoryActive || categoryOpen;
 
   const topButtonClass = (active) =>
     cn(
@@ -141,17 +146,58 @@ export function SidebarNav({
         </SidebarMenuItem>
 
         <SidebarMenuItem>
-          <SidebarMenuButton
-            render={<Link href={links.category} onClick={onNavigate} />}
-            isActive={isRouteActive(pathname, links.category)}
-            tooltip={enableTooltips ? "Category" : undefined}
-            className={topButtonClass(isRouteActive(pathname, links.category))}
-          >
-            <FolderTree aria-hidden />
-            <span className={cn("truncate", collapsed && "sr-only")}>
-              Category
-            </span>
-          </SidebarMenuButton>
+          {collapsed ? (
+            <SidebarMenuButton
+              render={<Link href={links.category} onClick={onNavigate} />}
+              isActive={categoryActive}
+              tooltip={enableTooltips ? "Category" : undefined}
+              className={topButtonClass(categoryActive)}
+            >
+              <FolderTree aria-hidden />
+              <span className="sr-only">Category</span>
+            </SidebarMenuButton>
+          ) : (
+            <Collapsible open={effectiveCategoryOpen} onOpenChange={setCategoryOpen}>
+              <CollapsibleTrigger
+                render={
+                  <SidebarMenuButton
+                    isActive={categoryActive}
+                    className={topButtonClass(categoryActive)}
+                  >
+                    <FolderTree aria-hidden />
+                    <span className="truncate">Category</span>
+                    {effectiveCategoryOpen ? (
+                      <ChevronDown className="ms-auto size-4" aria-hidden />
+                    ) : (
+                      <ChevronRight className="ms-auto size-4" aria-hidden />
+                    )}
+                  </SidebarMenuButton>
+                }
+              />
+              <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+                <SidebarMenuSub className="mx-3.5 mt-1 gap-1 border-sidebar-border px-2.5 py-0.5">
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton
+                      render={<Link href={links.category} onClick={onNavigate} />}
+                      isActive={isRouteActive(pathname, links.category)}
+                      className={subLinkClass(isRouteActive(pathname, links.category))}
+                    >
+                      <span>Main Category</span>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton
+                      render={<Link href={links.subCategory} onClick={onNavigate} />}
+                      isActive={isRouteActive(pathname, links.subCategory)}
+                      className={subLinkClass(isRouteActive(pathname, links.subCategory))}
+                    >
+                      <span>Sub Category</span>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                </SidebarMenuSub>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </SidebarMenuItem>
 
         <SidebarMenuItem>

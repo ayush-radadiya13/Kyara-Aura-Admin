@@ -20,6 +20,7 @@ export function useProducts(page, pageSize, filters) {
           per_page: pageSize,
           search: filters.search?.trim(),
           category_id: filters.category_id,
+          category_type: filters.category_type,
           size_id: filters.size_id,
           price: filters.price,
           is_active: filters.is_active,

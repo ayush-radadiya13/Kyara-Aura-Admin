@@ -10,6 +10,8 @@ export const defaultWebSettings = {
   whatsapp_url: "",
   youtube_url: "",
   buy_two_get_one_free_enabled: false,
+  buy_qty: 0,
+  get_qty: 0,
   first_order_discount_amount: 0,
   online_payment_discount_percent: 0,
   shipping_amount: 0,
@@ -100,6 +102,8 @@ export function normalizeWebSettings(settings) {
         settings?.buyTwoGetOneFreeEnabled ??
         false
     ),
+    buy_qty: toNumber(settings?.buy_qty ?? settings?.buyQty, 0),
+    get_qty: toNumber(settings?.get_qty ?? settings?.getQty, 0),
     first_order_discount_amount: toNumber(
       settings?.first_order_discount_amount ?? settings?.firstOrderDiscountAmount,
       0
@@ -137,6 +141,8 @@ export function buildWebSettingsPayload(settings) {
     facebook_url: settings.facebook_url.trim(),
     whatsapp_url: settings.whatsapp_url.trim(),
     buy_two_get_one_free_enabled: Boolean(settings.buy_two_get_one_free_enabled),
+    buy_qty: toNumber(settings.buy_qty, 0),
+    get_qty: toNumber(settings.get_qty, 0),
     first_order_discount_amount: toNumber(settings.first_order_discount_amount, 0),
     online_payment_discount_percent: toNumber(
       settings.online_payment_discount_percent,

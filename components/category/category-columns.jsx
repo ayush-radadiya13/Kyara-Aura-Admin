@@ -5,7 +5,9 @@ import { Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-export function getCategoryColumns(loading, offset = 0) {
+export function getCategoryColumns(loading, offset = 0, { variant = "main" } = {}) {
+  const showParent = variant === "sub";
+
   return (_sortAttr, _sort, _onSort, onDelete, onEdit) => [
     {
       accessorKey: "id",
@@ -41,6 +43,18 @@ export function getCategoryColumns(loading, offset = 0) {
         <span className="font-medium">{row.getValue("name")}</span>
       ),
     },
+    ...(showParent
+      ? [
+          {
+            accessorKey: "parent_name",
+            header: "Main Category",
+            meta: { width: "180px" },
+            cell: ({ row }) => (
+              <span>{row.original.parent_name || "-"}</span>
+            ),
+          },
+        ]
+      : []),
     {
       accessorKey: "is_active",
       header: "Status",

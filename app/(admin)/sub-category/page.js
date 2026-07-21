@@ -16,14 +16,14 @@ import { Button } from "@/components/ui/button";
 import { useCrudMutation } from "@/hooks/admin/module/use-crud-mutation";
 import { useCategories } from "@/hooks/admin/module/use-categories";
 import { ADMIN_API_ROUTES } from "@/lib/routes";
-import { useCategoryStore } from "@/store/category-store";
+import { useSubCategoryStore } from "@/store/sub-category-store";
 
-export default function CategoryPage() {
+export default function SubCategoryPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [actionLoading, setActionLoading] = useState(false);
   const [categoryToDeleteId, setCategoryToDeleteId] = useState(null);
-  const { search, offset, limit, setSearch, setPagination } = useCategoryStore();
+  const { search, offset, limit, setSearch, setPagination } = useSubCategoryStore();
   const page = Math.floor(offset / limit) + 1;
 
   const { data, isLoading, isFetching, refetch } = useCategories(
@@ -31,24 +31,33 @@ export default function CategoryPage() {
     limit,
     search,
     "all",
-    "main"
+    "sub"
   );
+  const { data: mainCategoriesData } = useCategories(1, 10, "", "all", "main");
 
-  const categories = useMemo(
-    () => (data?.data || data?.results || []).map(normalizeCategory),
-    [data]
-  );
+  const categories = useMemo(() => {
+    const normalized = (data?.data || data?.results || []).map(normalizeCategory);
+    const mains = (mainCategoriesData?.data || mainCategoriesData?.results || []).map(
+      normalizeCategory
+    );
+    const byId = new Map(mains.map((item) => [String(item.id), item]));
+    return normalized.map((item) => ({
+      ...item,
+      parent_name: item.parent_name || byId.get(String(item.parent_id))?.name || "",
+    }));
+  }, [data, mainCategoriesData]);
+
   const totalCount = data?.meta?.total ?? data?.total ?? categories.length;
 
   const getColumns = useMemo(
-    () => getCategoryColumns(actionLoading, offset, { variant: "main" }),
+    () => getCategoryColumns(actionLoading, offset, { variant: "sub" }),
     [actionLoading, offset]
   );
 
   const { remove } = useCrudMutation({
     baseUrl: ADMIN_API_ROUTES.DELETE_CATEGORIES,
     onSuccess: async (res) => {
-      toast.success(res?.message || "Main category deleted successfully");
+      toast.success(res?.message || "Subcategory deleted successfully");
       await queryClient.invalidateQueries({ queryKey: ["categories"] });
       await refetch();
     },
@@ -76,7 +85,7 @@ export default function CategoryPage() {
   const handleEdit = (category) => {
     const id = category?.id;
     if (!id) return;
-    router.push(`/category/edit/${id}`);
+    router.push(`/sub-category/edit/${id}`);
   };
 
   const tableLoading = isLoading || isFetching;
@@ -84,17 +93,17 @@ export default function CategoryPage() {
   return (
     <section>
       <PageHeader
-        title="Main Category"
-        description="Manage top-level categories for your catalog."
+        title="Sub Category"
+        description="Manage subcategories under your main categories."
         action={
           <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" onClick={() => refetch()}>
               <RotateCw className="size-4" />
             </Button>
-            <Link href="/category/create">
+            <Link href="/sub-category/create">
               <Button>
                 <Plus className="mr-2 size-4" />
-                Add Main Category
+                Add Sub Category
               </Button>
             </Link>
           </div>
@@ -103,8 +112,8 @@ export default function CategoryPage() {
 
       {!tableLoading && categories.length === 0 && !search.trim() ? (
         <EmptyState
-          title="No main categories yet"
-          description="Create your first main category to begin organizing items."
+          title="No subcategories yet"
+          description="Create a subcategory and assign it to a main category."
         />
       ) : (
         <DataTableWrapper
@@ -131,8 +140,8 @@ export default function CategoryPage() {
             setCategoryToDeleteId(null);
           }
         }}
-        title="Delete main category?"
-        message="Are you sure you want to delete this main category?"
+        title="Delete subcategory?"
+        message="Are you sure you want to delete this subcategory?"
         confirmLabel="Delete"
         loadingLabel="Deleting..."
         isLoading={actionLoading}

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useState } from "react";
@@ -86,7 +87,7 @@ export default function ProductPage() {
   );
 
   const { data, isLoading, isFetching, refetch } = useProducts(page, limit, filters);
-  const { data: categoriesData } = useCategories(1, 100, "", "all");
+  const { data: categoriesData } = useCategories(1, 100, "", "all", "main");
   const { data: sizeOptions = [] } = useSizeOptions();
   const categories = useMemo(
     () => (categoriesData?.data || categoriesData?.results || []).map(normalizeCategory),

@@ -4,9 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { ADMIN_API_ROUTES } from "@/lib/routes";
 import { customAxios } from "@/utils/api";
 
-export function useCategories(page, pageSize, search, isActive) {
+export function useCategories(page, pageSize, search, isActive, type) {
   return useQuery({
-    queryKey: ["categories", page, pageSize, search, isActive],
+    queryKey: ["categories", page, pageSize, search, isActive, type],
     queryFn: async () => {
       const res = await customAxios.get(ADMIN_API_ROUTES.GET_CATEGORIES, {
         params: {
@@ -14,6 +14,7 @@ export function useCategories(page, pageSize, search, isActive) {
           per_page: pageSize,
           ...(search?.trim() ? { search: search.trim() } : {}),
           ...(isActive !== "all" ? { is_active: isActive } : {}),
+          ...(type ? { type } : {}),
         },
       });
       return res.data;

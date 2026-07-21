@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
@@ -8,9 +8,20 @@ import { Loader2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { categorySchema } from "@/validations/category-validation";
+import { getMainCategories } from "@/components/category/category-utils";
+import {
+  mainCategorySchema,
+  subCategorySchema,
+} from "@/validations/category-validation";
 import { uploadMediaFile } from "@/services/media-service";
 import { toast } from "sonner";
 
@@ -20,29 +31,76 @@ const defaultValues = {
   is_active: true,
   slug: "",
   image: "",
+  parent_id: "",
+  sort_order: 0,
 };
 
 const MAX_CATEGORY_IMAGE_SIZE = 5 * 1024 * 1024;
 
+function resolveParentIdValue(initialValues) {
+  const value =
+    initialValues?.parent_id ??
+    initialValues?.parentId ??
+    initialValues?.parent_category_id ??
+    initialValues?.parent?.id ??
+    initialValues?.parent?._id;
+
+  if (value === undefined || value === null || value === "" || value === 0 || value === "0") {
+    return "";
+  }
+
+  return String(value);
+}
+
 export function CategoryForm({
   mode = "create",
+  variant = "main",
   onSubmit,
   onCancel,
   loading,
   initialValues,
+  categories = [],
 }) {
+  const isSubVariant = variant === "sub";
+  const schema = isSubVariant ? subCategorySchema : mainCategorySchema;
+
   const form = useForm({
-    resolver: zodResolver(categorySchema),
+    resolver: zodResolver(schema),
     defaultValues,
   });
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const watchedName = useWatch({ control: form.control, name: "name" });
   const imageValue = useWatch({ control: form.control, name: "image" });
   const isActive = useWatch({ control: form.control, name: "is_active" });
+  const parentId = useWatch({ control: form.control, name: "parent_id" });
+
+  const parentOptions = useMemo(() => {
+    const mains = getMainCategories(categories, mode === "edit" ? initialValues?.id : null);
+    const selectedParentId = isSubVariant ? resolveParentIdValue(initialValues) : "";
+
+    if (
+      selectedParentId &&
+      !mains.some((category) => String(category.id) === selectedParentId)
+    ) {
+      return [
+        {
+          id: selectedParentId,
+          name:
+            initialValues?.parent_name ||
+            initialValues?.parent?.name ||
+            `Category #${selectedParentId}`,
+        },
+        ...mains,
+      ];
+    }
+
+    return mains;
+  }, [categories, initialValues, isSubVariant, mode]);
 
   useEffect(() => {
     if (initialValues) {
       const imageUrl = initialValues.image_url || initialValues.image || "";
+      const parentIdValue = isSubVariant ? resolveParentIdValue(initialValues) : "";
 
       form.reset({
         name: initialValues.name || "",
@@ -50,11 +108,48 @@ export function CategoryForm({
         is_active: Boolean(initialValues.is_active),
         slug: initialValues.slug || "",
         image: imageUrl,
+        parent_id: parentIdValue,
+        sort_order: Number(initialValues.sort_order ?? 0) || 0,
       });
+
+      if (isSubVariant && parentIdValue) {
+        const timer = setTimeout(() => {
+          form.setValue("parent_id", parentIdValue, {
+            shouldDirty: false,
+            shouldValidate: true,
+          });
+        }, 0);
+
+        return () => clearTimeout(timer);
+      }
+
       return;
     }
-    form.reset(defaultValues);
-  }, [initialValues, form]);
+
+    form.reset({
+      ...defaultValues,
+      parent_id: "",
+    });
+  }, [initialValues, form, isSubVariant]);
+
+  useEffect(() => {
+    if (!isSubVariant || !initialValues || parentOptions.length === 0) return;
+
+    const selectedParentId = resolveParentIdValue(initialValues);
+    if (!selectedParentId) return;
+
+    const currentParentId = String(form.getValues("parent_id") || "");
+    const hasSelectedOption = parentOptions.some(
+      (category) => String(category.id) === selectedParentId
+    );
+
+    if (hasSelectedOption && currentParentId !== selectedParentId) {
+      form.setValue("parent_id", selectedParentId, {
+        shouldDirty: false,
+        shouldValidate: true,
+      });
+    }
+  }, [form, initialValues, isSubVariant, parentOptions]);
 
   const slugEditedManually = Boolean(form.formState.dirtyFields.slug);
 
@@ -112,13 +207,20 @@ export function CategoryForm({
     });
   };
 
-  const submitHandler = form.handleSubmit(onSubmit);
+  const submitHandler = form.handleSubmit((values) => {
+    onSubmit({
+      ...values,
+      parent_id: isSubVariant ? values.parent_id : "",
+    });
+  });
+
+  const entityLabel = isSubVariant ? "subcategory" : "category";
 
   return (
     <form onSubmit={submitHandler} className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
         <div className="space-y-2">
-          <Label>Category Image</Label>
+          <Label>{isSubVariant ? "Subcategory Image" : "Category Image"}</Label>
           <input
             type="file"
             accept="image/*"
@@ -134,13 +236,13 @@ export function CategoryForm({
                 ? "cursor-not-allowed opacity-70"
                 : "cursor-pointer hover:border-primary/60 hover:bg-muted/50"
             }`}
-            aria-label="Upload category image"
+            aria-label={`Upload ${entityLabel} image`}
           >
             {imageValue ? (
               <>
                 <Image
                   src={imageValue}
-                  alt="Category image"
+                  alt={`${isSubVariant ? "Subcategory" : "Category"} image`}
                   fill
                   sizes="280px"
                   unoptimized
@@ -194,7 +296,9 @@ export function CategoryForm({
         <div className="space-y-5">
           <div>
             <div className="ml-auto flex w-full items-center justify-between gap-4 sm:w-fit">
-              <Label htmlFor="is_active">Active category</Label>
+              <Label htmlFor="is_active">
+                Active {isSubVariant ? "subcategory" : "category"}
+              </Label>
               <Switch
                 id="is_active"
                 checked={isActive}
@@ -213,10 +317,60 @@ export function CategoryForm({
             )}
           </div>
 
+          {isSubVariant ? (
+            <div className="space-y-2">
+              <Label htmlFor="parent_id">Main Category</Label>
+              <Select
+                value={parentId ? String(parentId) : undefined}
+                onValueChange={(value) =>
+                  form.setValue("parent_id", String(value), {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+              >
+                <SelectTrigger id="parent_id" className="h-10 w-full">
+                  <SelectValue placeholder="Select a main category" />
+                </SelectTrigger>
+                <SelectContent
+                  align="start"
+                  avoidCollisions={false}
+                  position="popper"
+                  side="bottom"
+                  sideOffset={4}
+                >
+                  {parentOptions.map((category) => (
+                    <SelectItem key={String(category.id)} value={String(category.id)}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {parentOptions.length === 0
+                  ? "Create a main category first before adding a subcategory."
+                  : "Choose the main category this subcategory belongs to."}
+              </p>
+              {form.formState.errors.parent_id && (
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.parent_id.message}
+                </p>
+              )}
+            </div>
+          ) : null}
+
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="name">Category Name</Label>
-              <Input id="name" placeholder="Enter a category name" {...form.register("name")} />
+              <Label htmlFor="name">
+                {isSubVariant ? "Subcategory Name" : "Category Name"}
+              </Label>
+              <Input
+                id="name"
+                placeholder={
+                  isSubVariant ? "Enter a subcategory name" : "Enter a category name"
+                }
+                {...form.register("name")}
+              />
               {form.formState.errors.name && (
                 <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
               )}

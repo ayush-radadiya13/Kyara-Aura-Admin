@@ -23,7 +23,7 @@ export default function EditProductPage() {
   const [loading, setLoading] = useState(false);
 
   const { data, isLoading, isError } = useProduct(productId);
-  const { data: categoriesData } = useCategories(1, 100, "", "all");
+  const { data: categoriesData } = useCategories(1, 100, "", "all", "sub");
   const { data: sizes = [] } = useSizeOptions();
 
   const categories = useMemo(

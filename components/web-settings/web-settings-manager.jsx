@@ -376,15 +376,18 @@ export function WebSettingsManager() {
 
           <div className="space-y-4 rounded-lg border border-border p-4">
             <div>
-              <h3 className="text-sm font-medium">Promotions</h3>
+              <h3 className="text-sm font-medium">
+                Buy {currentValues.buy_qty} Get {currentValues.get_qty} Offer
+              </h3>
             </div>
-            <div className="flex items-center justify-between gap-4">
-              <div className="space-y-1">
+            <div className="flex items-center justify-between gap-4 rounded-md border border-border/70 bg-muted/20 px-3 py-2.5">
+              <div className="space-y-0.5">
                 <Label htmlFor="web-settings-buy-two-get-one-free">
-                  Buy 2 Get 1 Free
+                  Enable Offer
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Enable the buy two get one free offer on the storefront.
+                  Turn the Buy {currentValues.buy_qty} Get {currentValues.get_qty}{" "}
+                  free offer on or off.
                 </p>
               </div>
               <Switch
@@ -395,6 +398,53 @@ export function WebSettingsManager() {
                 }
                 disabled={actionDisabled}
               />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="web-settings-buy-qty">Buy Quantity</Label>
+                <Input
+                  id="web-settings-buy-qty"
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="0"
+                  value={currentValues.buy_qty}
+                  onChange={(event) =>
+                    updateField(
+                      "buy_qty",
+                      event.target.value === "" ? 0 : Number(event.target.value)
+                    )
+                  }
+                  disabled={actionDisabled || !currentValues.buy_two_get_one_free_enabled}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="web-settings-get-qty">Get Quantity</Label>
+                <Input
+                  id="web-settings-get-qty"
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="0"
+                  value={currentValues.get_qty}
+                  onChange={(event) =>
+                    updateField(
+                      "get_qty",
+                      event.target.value === "" ? 0 : Number(event.target.value)
+                    )
+                  }
+                  disabled={actionDisabled || !currentValues.buy_two_get_one_free_enabled}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4 rounded-lg border border-border p-4">
+            <div>
+              <h3 className="text-sm font-medium">Promotions</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Discount amounts applied to first orders and online payments.
+              </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
