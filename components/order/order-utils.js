@@ -231,7 +231,11 @@ export function getDeliveryStatusClass(status) {
     return "bg-blue-100 text-blue-700 hover:bg-blue-100";
   }
 
-  if (["pending", "not_created"].includes(normalizedStatus)) {
+  if (
+    ["pending", "not_created", SHIPMENT_STATUS.RETRY_PENDING].includes(
+      normalizedStatus
+    )
+  ) {
     return "bg-yellow-100 text-yellow-700 hover:bg-yellow-100";
   }
 
@@ -240,6 +244,7 @@ export function getDeliveryStatusClass(status) {
       SHIPMENT_STATUS.RTO,
       SHIPMENT_STATUS.CANCELLED,
       SHIPMENT_STATUS.FAILED,
+      SHIPMENT_STATUS.CREATION_FAILED,
       "returned",
     ].includes(normalizedStatus)
   ) {
@@ -254,6 +259,25 @@ export function getOrderDeliveryStatus(order) {
     order?.shipment?.shipment_status ||
     order?.shipment_status ||
     order?.shipping_status ||
+    ""
+  );
+}
+
+export function canRetryOrderShipment(order) {
+  return Boolean(order?.shipment?.can_retry_shipment);
+}
+
+export function isOrderShipmentRetryPending(order) {
+  return (
+    String(getOrderDeliveryStatus(order) || "").toLowerCase() ===
+    SHIPMENT_STATUS.RETRY_PENDING
+  );
+}
+
+export function getOrderShipmentFailedReason(order) {
+  return (
+    order?.shipment?.failed_reason ||
+    order?.failed_reason ||
     ""
   );
 }

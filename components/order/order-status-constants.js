@@ -21,6 +21,8 @@ export const SHIPMENT_STATUS = {
   RTO: "rto",
   CANCELLED: "cancelled",
   FAILED: "failed",
+  RETRY_PENDING: "retry_pending",
+  CREATION_FAILED: "creation_failed",
 };
 
 export const SHIPMENT_STATUSES = Object.values(SHIPMENT_STATUS);

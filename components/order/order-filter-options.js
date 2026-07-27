@@ -21,6 +21,8 @@ const SHIPMENT_STATUS_LABELS = {
   rto: "RTO",
   cancelled: "Cancelled",
   failed: "Failed",
+  retry_pending: "Retrying…",
+  creation_failed: "Creation Failed",
 };
 
 export const ORDER_STATUS_OPTIONS = [

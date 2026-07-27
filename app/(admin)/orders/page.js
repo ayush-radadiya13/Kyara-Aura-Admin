@@ -29,6 +29,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  canRetryOrderShipment,
+  isOrderShipmentRetryPending,
   normalizeOrderId,
   persistDownloadedLabelOrderIds,
   readDownloadedLabelOrderIds,
@@ -41,6 +43,7 @@ import {
   useDownloadOrderShipmentLabel,
   useOrderDetails,
   useOrders,
+  useRetryOrderShipment,
 } from "@/hooks/admin/module/use-orders";
 import { cn } from "@/lib/utils";
 import { useOrderStore } from "@/store/order-store";
@@ -436,6 +439,55 @@ export default function OrdersPage() {
       },
     });
 
+  const { mutate: retryOrderShipment, isPending: isRetryingShipment } =
+    useRetryOrderShipment({
+      onMutate: async (orderId) => {
+        await queryClient.cancelQueries({ queryKey: ["orders"] });
+
+        const previousQueries = queryClient.getQueriesData({ queryKey: ["orders"] });
+
+        previousQueries.forEach(([queryKey, queryData]) => {
+          if (!queryData) return;
+
+          const list = queryData?.data || queryData?.results;
+          if (!Array.isArray(list)) return;
+
+          queryClient.setQueryData(queryKey, {
+            ...queryData,
+            data: list.map((order) => {
+              if (normalizeOrderId(order?.id) !== normalizeOrderId(orderId)) {
+                return order;
+              }
+
+              return {
+                ...order,
+                shipment: {
+                  ...(order.shipment || {}),
+                  shipment_status: "retry_pending",
+                  can_retry_shipment: false,
+                },
+              };
+            }),
+          });
+        });
+
+        return { previousQueries };
+      },
+      onSuccess: async (res, orderId) => {
+        toast.success(res?.message || "Shipment retry queued");
+        await refreshOrderData(orderId);
+      },
+      onError: (error, _orderId, context) => {
+        context?.previousQueries?.forEach(([queryKey, queryData]) => {
+          queryClient.setQueryData(queryKey, queryData);
+        });
+        toast.error(
+          error?.response?.data?.message || "Shipment retry failed"
+        );
+      },
+      onSettled: () => setShipmentAction(null),
+    });
+
   const markLabelsDownloaded = useCallback((orderIds) => {
     setDownloadedLabelOrderIds((current) => {
       const next = new Set(current);
@@ -539,6 +591,17 @@ export default function OrdersPage() {
     [downloadOrderShipmentLabel]
   );
 
+  const handleRetryShipment = useCallback(
+    (order) => {
+      const orderId = order?.id;
+      if (!orderId || !canRetryOrderShipment(order)) return;
+
+      setShipmentAction({ orderId, type: "retry-shipment" });
+      retryOrderShipment(orderId);
+    },
+    [retryOrderShipment]
+  );
+
   const handleToggleOrderSelection = useCallback((order) => {
     const orderId = Number(order?.id);
     if (!orderId) return;
@@ -570,6 +633,19 @@ export default function OrdersPage() {
     setSelectedOrderIds([]);
   }, [offset, limit, orderType, searchParamsKey]);
 
+  useEffect(() => {
+    const hasRetryPending = orders.some((order) =>
+      isOrderShipmentRetryPending(order)
+    );
+    if (!hasRetryPending) return undefined;
+
+    const intervalId = window.setInterval(() => {
+      refetch();
+    }, 5000);
+
+    return () => window.clearInterval(intervalId);
+  }, [orders, refetch]);
+
   const handleDetailsOpenChange = (open) => {
     setIsDetailsOpen(open);
 
@@ -583,7 +659,8 @@ export default function OrdersPage() {
     isCreatingShipment ||
     isCancellingShipment ||
     isDownloadingLabel ||
-    isBulkDownloadingLabels;
+    isBulkDownloadingLabels ||
+    isRetryingShipment;
   const hasFilters = Boolean(
     search.trim() ||
       status !== "all" ||
@@ -598,6 +675,7 @@ export default function OrdersPage() {
         onConfirmOrder: handleConfirmOrder,
         onCancelOrder: handleCancelOrder,
         onDownloadLabel: handleDownloadLabel,
+        onRetryShipment: handleRetryShipment,
         actionOrderId: shipmentAction?.orderId,
         actionType: shipmentAction?.type,
         selectedOrderIds,
@@ -611,6 +689,7 @@ export default function OrdersPage() {
       handleCancelOrder,
       handleConfirmOrder,
       handleDownloadLabel,
+      handleRetryShipment,
       handleToggleOrderSelection,
       selectedOrderIds,
       shipmentAction?.orderId,

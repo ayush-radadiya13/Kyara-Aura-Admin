@@ -84,6 +84,20 @@ export function useCancelOrderShipment(options) {
   });
 }
 
+export function useRetryOrderShipment(options) {
+  return useMutation({
+    mutationFn: async (orderId) => {
+      if (!orderId) throw new Error("Missing order ID");
+
+      const res = await customAxios.post(
+        ADMIN_API_ROUTES.RETRY_ORDER_SHIPMENT(orderId)
+      );
+      return res.data;
+    },
+    ...options,
+  });
+}
+
 export function useDownloadOrderShipmentLabel(options) {
   return useMutation({
     mutationFn: async (orderId) => {

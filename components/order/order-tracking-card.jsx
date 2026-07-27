@@ -51,6 +51,7 @@ const STATUS_TO_STEP = {
   processing: "processing",
   confirmed: "processing",
   manifested: "processing",
+  retry_pending: "processing",
   pickup_scheduled: "processing",
   pickup_pending: "processing",
   not_picked: "processing",

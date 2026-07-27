@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle, Download, Eye, Loader2, XCircle } from "lucide-react";
+import { CheckCircle, Download, Eye, Loader2, RefreshCw, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,15 +9,18 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  canRetryOrderShipment,
   formatCurrency,
   formatDateTime,
   formatLabel,
   getDeliveryStatusClass,
   getOrderDeliveryStatus,
+  getOrderShipmentFailedReason,
   getOrderStatusClass,
   getPaymentStatusClass,
   hasOrderLabelBeenDownloaded,
   hasOrderWaybill,
+  isOrderShipmentRetryPending,
   normalizeOrderId,
 } from "./order-utils";
 
@@ -29,6 +32,7 @@ export function getOrderColumns(loading, shipmentActions = {}) {
     onConfirmOrder,
     onCancelOrder,
     onDownloadLabel,
+    onRetryShipment,
     actionOrderId,
     actionType,
     selectedOrderIds = [],
@@ -60,6 +64,12 @@ export function getOrderColumns(loading, shipmentActions = {}) {
         const isDownloadingLabel =
           normalizeOrderId(actionOrderId) === normalizedOrderId &&
           actionType === "download-label";
+        const isRetryingShipment =
+          (normalizeOrderId(actionOrderId) === normalizedOrderId &&
+            actionType === "retry-shipment") ||
+          isOrderShipmentRetryPending(order);
+        const canRetryShipment = canRetryOrderShipment(order);
+        const showRetryShipment = canRetryShipment || isRetryingShipment;
         const isLabelDownloaded = hasOrderLabelBeenDownloaded(
           order,
           downloadedLabelOrderIds
@@ -113,6 +123,32 @@ export function getOrderColumns(loading, shipmentActions = {}) {
                 </Button>
               </>
             )}
+            {showRetryShipment ? (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={
+                        isRetryingShipment ? "Retrying shipment" : "Retry shipment"
+                      }
+                      onClick={() => onRetryShipment?.(order)}
+                      disabled={loading || !orderId || isRetryingShipment || !canRetryShipment}
+                    >
+                      {isRetryingShipment ? (
+                        <Loader2 className="size-4 animate-spin text-amber-600" />
+                      ) : (
+                        <RefreshCw className="size-4 text-amber-600" />
+                      )}
+                    </Button>
+                  }
+                />
+                <TooltipContent>
+                  {isRetryingShipment ? "Retrying…" : "Retry Shipment"}
+                </TooltipContent>
+              </Tooltip>
+            ) : null}
             {hasWaybill ? (
               <Tooltip>
                 <TooltipTrigger
@@ -221,12 +257,23 @@ export function getOrderColumns(loading, shipmentActions = {}) {
       meta: { width: "150px" },
       accessorFn: (row) => getOrderDeliveryStatus(row),
       cell: ({ row }) => {
-        const status = getOrderDeliveryStatus(row.original);
+        const order = row.original;
+        const status = getOrderDeliveryStatus(order);
+        const failedReason = getOrderShipmentFailedReason(order);
+        const label = formatLabel(status);
+        const badge = (
+          <Badge className={getDeliveryStatusClass(status)}>
+            {label}
+          </Badge>
+        );
+
+        if (!failedReason) return badge;
 
         return (
-          <Badge className={getDeliveryStatusClass(status)}>
-            {formatLabel(status)}
-          </Badge>
+          <Tooltip>
+            <TooltipTrigger render={<span className="inline-flex">{badge}</span>} />
+            <TooltipContent className="max-w-xs">{failedReason}</TooltipContent>
+          </Tooltip>
         );
       },
     },

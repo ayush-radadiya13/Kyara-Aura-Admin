@@ -593,6 +593,12 @@ export function OrderDetailsDrawer({
                         value={formatLabel(order.shipment.provider)}
                       />
                     ) : null}
+                    {order?.shipment?.failed_reason ? (
+                      <InfoItem
+                        label="Shipment Failure"
+                        value={order.shipment.failed_reason}
+                      />
+                    ) : null}
                   </InfoList>
                 </SectionCard>
               </div>
