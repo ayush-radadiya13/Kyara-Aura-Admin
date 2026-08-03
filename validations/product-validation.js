@@ -40,6 +40,10 @@ export const productSchema = z.object({
           size_id: z.string().trim().min(1, "Size is required"),
           quantity: z.coerce.number().int().min(0, "Quantity must be 0 or greater"),
           price: z.coerce.number().min(0, "Price must be 0 or greater"),
+          discount_price: z.preprocess(
+            (val) => (val === "" || val === null || val === undefined ? null : val),
+            z.coerce.number().min(0, "Discount price must be 0 or greater").nullable().optional()
+          ),
         })
       )
       .optional()

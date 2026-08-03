@@ -15,15 +15,16 @@ function formatNumber(value) {
   });
 }
 
-function formatDiscount(value) {
-  if (value === undefined || value === null || value === "") return "-";
+function calculateVariantDiscount(price, mrp) {
+  const numPrice = Number(price);
+  const numMrp = Number(mrp);
 
-  const numberValue = Number(value);
-  if (Number.isNaN(numberValue)) return `${value}%`;
+  if (!numMrp || Number.isNaN(numMrp) || Number.isNaN(numPrice) || numMrp <= 0 || numPrice >= numMrp) {
+    return "0%";
+  }
 
-  return `${numberValue.toLocaleString("en-IN", {
-    maximumFractionDigits: 2,
-  })}%`;
+  const pct = Math.round(((numMrp - numPrice) / numMrp) * 100);
+  return `${pct}%`;
 }
 
 export function getProductColumns(loading) {
@@ -61,34 +62,34 @@ export function getProductColumns(loading) {
       ),
     },
     {
-      accessorKey: "discount_percentage",
-      header: "Discount",
-      meta: { width: "100px" },
-      cell: ({ row }) => <span>{formatDiscount(row.getValue("discount_percentage"))}</span>,
-    },
-    {
       id: "variants",
       header: "Variants",
-      meta: { width: "260px" },
+      meta: { width: "390px" },
       cell: ({ row }) => {
         const variants = row.original.sizes || [];
         if (!variants.length) return <span>-</span>;
 
         return (
           <div className="space-y-1 text-xs">
-            <div className="grid grid-cols-[1fr_56px_70px] gap-2 font-semibold text-muted-foreground">
+            <div className="grid grid-cols-[1fr_42px_68px_55px_48px] gap-2 font-semibold text-muted-foreground">
               <span>Size</span>
               <span>Qty</span>
-              <span>Price</span>
+              <span>Disc. Price</span>
+              <span>MRP</span>
+              <span>Disc %</span>
             </div>
             {variants.map((variant, index) => (
               <div
                 key={`${variant.size_text || "variant"}-${index}`}
-                className="grid grid-cols-[1fr_56px_70px] gap-2"
+                className="grid grid-cols-[1fr_42px_68px_55px_48px] gap-2"
               >
                 <span>{variant.size_text || "-"}</span>
                 <span>{formatNumber(variant.quantity)}</span>
                 <span>{formatNumber(variant.price)}</span>
+                <span>{formatNumber(variant.discount_price)}</span>
+                <span className="font-medium text-green-700">
+                  {calculateVariantDiscount(variant.price, variant.discount_price)}
+                </span>
               </div>
             ))}
           </div>

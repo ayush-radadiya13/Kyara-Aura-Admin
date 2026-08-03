@@ -218,6 +218,7 @@ export function normalizeProduct(item) {
       size_text: size?.size_text ?? size?.size?.name ?? size?.name ?? "",
       quantity: size?.quantity ?? "",
       price: size?.price ?? "",
+      discount_price: size?.discount_price ?? size?.discountPrice ?? null,
     })),
   };
 }
@@ -274,7 +275,7 @@ export function buildProductPayload(
     description: payload.description ?? "",
     short_description: payload.short_description ?? "",
     category_id: toNumberOrValue(payload.category_id),
-    discount_percentage: toNumberOrValue(payload.discount_percentage ?? 0),
+    discount_percentage: 0,
     weight_grams:
       payload.weight_grams === "" || payload.weight_grams === undefined
         ? null
@@ -296,6 +297,10 @@ export function buildProductPayload(
         size_id: toNumberOrValue(size.size_id),
         quantity: toNumberOrValue(size.quantity ?? 0),
         price: toNumberOrValue(size.price ?? 0),
+        discount_price:
+          size.discount_price === "" || size.discount_price === undefined || size.discount_price === null
+            ? null
+            : toNumberOrValue(size.discount_price),
       })),
     image: images,
     video: payload.video ?? "",

@@ -39,7 +39,7 @@ function FilterSelect({ label, value, onChange, options, className = "w-[190px]"
         <SelectTrigger className={cn(className, "bg-white")}>
           <SelectValue />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="max-h-[200px] overflow-y-auto">
           {options.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}

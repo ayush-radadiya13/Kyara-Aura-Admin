@@ -49,7 +49,7 @@ const defaultValues = {
   review_count: 0,
   images: [],
   video: "",
-  sizes: [{ size_id: "", quantity: "", price: "" }],
+  sizes: [{ size_id: "", quantity: "", price: "", discount_price: "" }],
 };
 
 const MAX_VIDEO_SIZE = 10 * 1024 * 1024;
@@ -337,8 +337,9 @@ export function ProductForm({
                 size_id: resolveInitialSizeId(size, normalizedSizeOptions),
                 quantity: size.quantity ?? "",
                 price: size.price ?? "",
+                discount_price: size.discount_price ?? size.discountPrice ?? "",
               }))
-            : [{ size_id: "", quantity: "", price: "" }],
+            : [{ size_id: "", quantity: "", price: "", discount_price: "" }],
     });
 
     setTimeout(() => {
@@ -745,7 +746,7 @@ export function ProductForm({
               <SelectContent
                 align="start"
                 avoidCollisions={false}
-                className="w-[var(--radix-select-trigger-width)]"
+                className="max-h-[200px] w-[var(--radix-select-trigger-width)] overflow-y-auto"
                 position="popper"
                 side="bottom"
                 sideOffset={4}
@@ -763,17 +764,6 @@ export function ProductForm({
             {form.formState.errors.category_id && (
               <p className="text-xs text-destructive">{form.formState.errors.category_id.message}</p>
             )}
-          </div>
-
-          <div className="lg:col-span-2">
-            {renderTextInput({
-              name: "discount_percentage",
-              label: "Discount Percentage",
-              placeholder: "0",
-              type: "number",
-              min: "0",
-              max: "100",
-            })}
           </div>
 
           <div className="lg:col-span-2">
@@ -816,7 +806,7 @@ export function ProductForm({
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => appendSize({ size_id: "", quantity: "", price: "" })}
+            onClick={() => appendSize({ size_id: "", quantity: "", price: "", discount_price: "" })}
             className="border-border bg-white text-foreground hover:bg-white"
           >
             <Plus className="mr-1 size-4" />
@@ -831,7 +821,8 @@ export function ProductForm({
                 <TableRow>
                   <TableHead>Size</TableHead>
                   <TableHead>Qty</TableHead>
-                  <TableHead>Price</TableHead>
+                  <TableHead>Discount Price</TableHead>
+                  <TableHead>MRP</TableHead>
                   <TableHead className="w-12" />
                 </TableRow>
               </TableHeader>
@@ -886,6 +877,16 @@ export function ProductForm({
                         placeholder="0.00"
                         className={compactInputClass}
                         {...form.register(`sizes.${index}.price`)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        className={compactInputClass}
+                        {...form.register(`sizes.${index}.discount_price`)}
                       />
                     </TableCell>
                     <TableCell>
